@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 
 interface StudentGrade {
@@ -82,6 +82,22 @@ function checkStudentPass(
 export default function GradeManager() {
   const [students, setStudents] = useState<{ [studentName: string]: StudentSummary }>({});
   const [assignments, setAssignments] = useState<string[]>([]);
+  const [user, setUser] = useState<{ login: string; avatar_url: string } | null>(null);
+
+  useEffect(() => {
+    // Load user data from localStorage
+    const userData = localStorage.getItem('gh_user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('gh_token');
+    localStorage.removeItem('gh_user');
+    localStorage.removeItem('gh_role');
+    window.location.href = '/grade-manager/';
+  };
 
   const processCSV = useCallback((csvContent: string, fileName: string) => {
     const lines = csvContent.split('\n');
@@ -230,66 +246,147 @@ export default function GradeManager() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">📊 Grade Manager</h1>
-        
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Navigation Bar */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-2xl">📚</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">GitHub Classroom</h1>
+                <p className="text-xs text-gray-500">Преподавателски панел</p>
+              </div>
+            </div>
+
+            {/* User Info and Logout */}
+            <div className="flex items-center gap-4">
+              {user && (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={user.avatar_url}
+                    alt={user.login}
+                    className="h-10 w-10 rounded-full border-2 border-gray-200"
+                  />
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-medium text-gray-900">{user.login}</div>
+                    <div className="text-xs text-gray-500">Преподавател</div>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              >
+                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Изход
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Upload Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-              isDragActive 
-                ? 'border-blue-400 bg-blue-50' 
-                : 'border-gray-300 hover:border-gray-400'
+            className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${
+              isDragActive
+                ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 shadow-lg'
+                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
             }`}
           >
             <input {...getInputProps()} />
-            <div className="space-y-2">
-              <div className="text-4xl">📁</div>
-              <p className="text-lg font-medium text-gray-700">
-                {isDragActive 
-                  ? 'Drop CSV files here...' 
-                  : 'Drag & drop CSV files here, or click to select'}
-              </p>
-              <p className="text-sm text-gray-500">
-                Upload GitHub Classroom grade CSV files
-              </p>
+            <div className="space-y-4">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center">
+                <span className="text-4xl">📁</span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900 mb-1">
+                  {isDragActive
+                    ? 'Пуснете CSV файловете тук...'
+                    : 'Плъзнете и пуснете CSV файлове тук'}
+                </p>
+                <p className="text-sm text-gray-500">
+                  или кликнете за да изберете файлове
+                </p>
+              </div>
+              <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg shadow-sm">
+                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Качи GitHub Classroom CSV файлове
+              </div>
             </div>
           </div>
           
           {assignments.length > 0 && (
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-3">
-                <p className="text-sm text-gray-600">
-                  📋 Loaded {assignments.length} assignment(s), {studentList.length} student(s)
-                </p>
+            <div className="mt-6 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
+                    </svg>
+                    {assignments.length} задачи
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                    </svg>
+                    {studentList.length} студенти
+                  </div>
+                </div>
                 <button
                   onClick={clearData}
-                  className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
                 >
-                  🗑️ Clear All Data
+                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Изчисти данните
                 </button>
               </div>
-              
+
               {/* Show active requirements */}
-              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-                <div className="font-semibold text-blue-900 mb-2">📋 Current Pass Requirements:</div>
-                <div className="text-blue-800 space-y-1">
-                  {assignments.filter(a => !activeChoiceGroups.some(g => g.includes(a))).length > 0 && (
-                    <div>
-                      <span className="font-medium">Required (all):</span> {
-                        assignments.filter(a => !activeChoiceGroups.some(g => g.includes(a))).join(', ')
-                      }
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 mb-2">Изисквания за издържане:</div>
+                    <div className="text-sm text-gray-700 space-y-2">
+                      {assignments.filter(a => !activeChoiceGroups.some(g => g.includes(a))).length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800 mt-0.5">
+                            Задължителни
+                          </span>
+                          <span className="flex-1">{assignments.filter(a => !activeChoiceGroups.some(g => g.includes(a))).join(', ')}</span>
+                        </div>
+                      )}
+                      {activeChoiceGroups.map((group, idx) => {
+                        const groupAssignments = group.filter(a => assignments.includes(a));
+                        return (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 mt-0.5">
+                              Избор {idx + 1}
+                            </span>
+                            <span className="flex-1">{groupAssignments.join(' ИЛИ ')}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
-                  {activeChoiceGroups.map((group, idx) => {
-                    const groupAssignments = group.filter(a => assignments.includes(a));
-                    return (
-                      <div key={idx}>
-                        <span className="font-medium">Choice group {idx + 1} (at least one):</span> {groupAssignments.join(' OR ')}
-                      </div>
-                    );
-                  })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -297,24 +394,48 @@ export default function GradeManager() {
         </div>
 
         {studentList.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Резултати на студентите</h2>
+              <p className="text-sm text-gray-600 mt-1">Преглед на оценките и статус на издържане</p>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">
-                      👤 Student
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
+                        </svg>
+                        Студент
+                      </div>
                     </th>
                     {assignments.map(assignment => (
-                      <th key={assignment} className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        📝 {assignment}
+                      <th key={assignment} className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd"/>
+                          </svg>
+                          {assignment}
+                        </div>
                       </th>
                     ))}
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      📊 Total
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                        </svg>
+                        Общо
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ✅ Pass
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                        Статус
+                      </div>
                     </th>
                   </tr>
                 </thead>
@@ -369,41 +490,108 @@ export default function GradeManager() {
               </table>
             </div>
             
-            <div className="px-6 py-4 bg-gray-50 border-t">
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <div className="text-gray-500 text-xs uppercase">Students Passed</div>
-                    <div className="text-lg font-bold text-green-600">
-                      🎯 {passedStudents}/{totalStudents} ({totalStudents > 0 ? ((passedStudents / totalStudents) * 100).toFixed(1) : 0}%)
+            <div className="px-6 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t">
+              <div className="space-y-6">
+                {/* Main Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
+                          Издържали
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                          {passedStudents}/{totalStudents}
+                        </div>
+                        <div className="text-sm text-green-600 font-semibold mt-1">
+                          {totalStudents > 0 ? ((passedStudents / totalStudents) * 100).toFixed(1) : 0}%
+                        </div>
+                      </div>
+                      <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <svg className="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <div className="text-gray-500 text-xs uppercase">Overall Average</div>
-                    <div className="text-lg font-bold text-blue-600">
-                      📈 {overallAverage.toFixed(1)}%
+
+                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
+                          Среден процент
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                          {overallAverage.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-blue-600 font-semibold mt-1">
+                          Обща оценка
+                        </div>
+                      </div>
+                      <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <svg className="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <div className="text-gray-500 text-xs uppercase">Total Assignments</div>
-                    <div className="text-lg font-bold text-purple-600">
-                      📝 {assignments.length}
+
+                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
+                          Всичко задачи
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                          {assignments.length}
+                        </div>
+                        <div className="text-sm text-purple-600 font-semibold mt-1">
+                          Заредени CSV
+                        </div>
+                      </div>
+                      <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <svg className="h-6 w-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Per-assignment Statistics */}
                 {assignmentStats.length > 0 && (
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <div className="text-gray-700 text-xs uppercase font-semibold mb-2">
-                      Per-assignment completion rates:
+                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-8 w-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <svg className="h-4 w-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                        Процент на завършване по задача
+                      </h3>
                     </div>
-                    <div className="space-y-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {assignmentStats.map(stat => (
-                        <div key={stat.name} className="flex justify-between items-center text-sm">
-                          <span className="font-medium text-gray-700">{stat.name}</span>
-                          <span className="text-gray-600">
-                            {stat.perfect}/{stat.total} perfect ({stat.percentage.toFixed(1)}%)
-                          </span>
+                        <div key={stat.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{stat.name}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {stat.perfect}/{stat.total} перфектни
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              stat.percentage === 100 ? 'bg-green-100 text-green-800' :
+                              stat.percentage >= 75 ? 'bg-blue-100 text-blue-800' :
+                              stat.percentage >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {stat.percentage.toFixed(0)}%
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
