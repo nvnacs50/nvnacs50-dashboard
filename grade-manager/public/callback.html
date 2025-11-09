@@ -78,7 +78,7 @@
   <script src="config.js"></script>
   <script>
     // Get base path for GitHub Pages
-    const basePath = window.location.pathname.includes('/grade-manager/') ? '/grade-manager' : '';
+    const basePath = window.location.pathname.includes('/nvnacs50-dashboard/') ? '/nvnacs50-dashboard' : '';
 
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('error');
@@ -154,10 +154,10 @@
         // Redirect based on role
         if (orgRole === 'teacher') {
           statusEl.textContent = 'Добре дошли, преподавател!';
-          setTimeout(() => window.location.href = '/grade-manager/teacher/', 500);
+          setTimeout(() => window.location.href = '/nvnacs50-dashboard/teacher/', 500);
         } else {
           statusEl.textContent = 'Добре дошли, студент!';
-          setTimeout(() => window.location.href = '/grade-manager/student/dashboard.html', 500);
+          setTimeout(() => window.location.href = '/nvnacs50-dashboard/student/dashboard.html', 500);
         }
 
       } catch (error) {

@@ -81,7 +81,7 @@ class Auth {
       this.setAuth(token, user);
 
       // Clean URL
-      window.history.replaceState({}, document.title, '/student/dashboard.html');
+      window.history.replaceState({}, document.title, '/nvnacs50-dashboard/student/dashboard.html');
 
       return { token, user };
     } catch (error) {
@@ -139,7 +139,7 @@ class Auth {
   // Logout
   logout() {
     this.clearAuth();
-    const basePath = window.location.pathname.includes('/grade-manager/') ? '/grade-manager' : '';
+    const basePath = window.location.pathname.includes('/nvnacs50-dashboard/') ? '/nvnacs50-dashboard' : '';
     window.location.href = `${basePath}/`;
   }
 }

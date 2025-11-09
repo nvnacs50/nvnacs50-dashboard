@@ -96,7 +96,7 @@ export default function GradeManager() {
     localStorage.removeItem('gh_token');
     localStorage.removeItem('gh_user');
     localStorage.removeItem('gh_role');
-    window.location.href = '/grade-manager/';
+    window.location.href = '/nvnacs50-dashboard/';
   };
 
   const processCSV = useCallback((csvContent: string, fileName: string) => {
