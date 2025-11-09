@@ -272,10 +272,49 @@
 
     function displayStatistics() {
       const stats = githubApi.getStatistics(assignments);
-      document.getElementById('total-assignments').textContent = stats.total;
-      document.getElementById('completed-assignments').textContent = stats.success;
+
+      // Calculate accepted and completed assignments count from CS50 list
+      const acceptedCount = calculateAcceptedCount();
+      const completedCount = calculateCompletedCount();
+
+      document.getElementById('total-assignments').textContent = acceptedCount;
+      document.getElementById('completed-assignments').textContent = completedCount;
       document.getElementById('pending-assignments').textContent = stats.inProgress + stats.notStarted + stats.noTests;
       document.getElementById('failed-assignments').textContent = stats.failure;
+    }
+
+    function calculateAcceptedCount() {
+      let count = 0;
+      CS50_ASSIGNMENTS.forEach(assignment => {
+        if (assignment.type === 'required') {
+          let isAccepted = userAssignments.has(assignment.name);
+          if (assignment.alternativeNames) {
+            isAccepted = isAccepted || assignment.alternativeNames.some(alt => userAssignments.has(alt));
+          }
+          if (isAccepted) count++;
+        } else if (assignment.type === 'choice') {
+          const hasAccepted = assignment.options.some(opt => userAssignments.has(opt.name));
+          if (hasAccepted) count++;
+        }
+      });
+      return count;
+    }
+
+    function calculateCompletedCount() {
+      let count = 0;
+      CS50_ASSIGNMENTS.forEach(assignment => {
+        if (assignment.type === 'required') {
+          let isCompleted = window.successfulAssignments && window.successfulAssignments.has(assignment.name);
+          if (assignment.alternativeNames && window.successfulAssignments) {
+            isCompleted = isCompleted || assignment.alternativeNames.some(alt => window.successfulAssignments.has(alt));
+          }
+          if (isCompleted) count++;
+        } else if (assignment.type === 'choice') {
+          const hasCompleted = assignment.options.some(opt => window.successfulAssignments && window.successfulAssignments.has(opt.name));
+          if (hasCompleted) count++;
+        }
+      });
+      return count;
     }
 
     function displayAssignments() {
