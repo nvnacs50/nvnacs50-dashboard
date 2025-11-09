@@ -252,26 +252,26 @@ export default function GradeManager() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Title */}
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-2xl">📚</span>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                <span className="text-xl sm:text-2xl">📚</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">GitHub Classroom</h1>
-                <p className="text-xs text-gray-500">Преподавателски панел</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">GitHub Classroom</h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Преподавателски панел</p>
               </div>
             </div>
 
             {/* User Info and Logout */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {user && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <img
                     src={user.avatar_url}
                     alt={user.login}
-                    className="h-10 w-10 rounded-full border-2 border-gray-200"
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-gray-200 flex-shrink-0"
                   />
-                  <div className="hidden sm:block">
+                  <div className="hidden md:block">
                     <div className="text-sm font-medium text-gray-900">{user.login}</div>
                     <div className="text-xs text-gray-500">Преподавател</div>
                   </div>
@@ -279,12 +279,12 @@ export default function GradeManager() {
               )}
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 shadow-sm text-xs sm:text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
-                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                Изход
+                <span className="hidden sm:inline">Изход</span>
               </button>
             </div>
           </div>

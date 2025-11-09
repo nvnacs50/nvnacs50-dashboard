@@ -19,14 +19,14 @@
   </script>
 </head>
 <body class="h-full bg-gradient-to-br from-blue-50 via-white to-purple-50">
-  <div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+  <div class="min-h-full flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-6 sm:space-y-8">
       <!-- Logo and Title -->
       <div class="text-center">
-        <div class="mx-auto h-20 w-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-          <span class="text-4xl">📚</span>
+        <div class="mx-auto h-16 w-16 sm:h-20 sm:w-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+          <span class="text-3xl sm:text-4xl">📚</span>
         </div>
-        <h2 class="mt-6 text-4xl font-extrabold text-gray-900">
+        <h2 class="mt-4 sm:mt-6 text-3xl sm:text-4xl font-extrabold text-gray-900">
           GitHub Classroom
         </h2>
         <p class="mt-2 text-sm text-gray-600">
@@ -35,41 +35,53 @@
       </div>
 
       <!-- Login Card -->
-      <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-        <div class="space-y-6">
+      <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100">
+        <div class="space-y-5 sm:space-y-6">
           <!-- Login Button -->
           <button id="github-login"
-                  class="group relative w-full flex justify-center items-center gap-3 py-4 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-            <svg class="w-5 h-5" viewBox="0 0 16 16" fill="currentColor">
+                  class="group relative w-full flex justify-center items-center gap-3 py-3.5 sm:py-4 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
             </svg>
             <span>Влез с GitHub</span>
           </button>
 
           <!-- Info Box -->
-          <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
-            <div class="flex items-start gap-3">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
+          <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-3.5 sm:p-4">
+            <div class="flex items-start gap-2.5 sm:gap-3">
+              <div class="flex-shrink-0 mt-0.5">
+                <div class="h-7 w-7 sm:h-8 sm:w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg class="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
               </div>
-              <div class="flex-1">
-                <h3 class="text-sm font-semibold text-gray-900 mb-1">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">
                   Автоматично определяне на роля
                 </h3>
-                <div class="text-xs text-gray-600 space-y-1">
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                <div class="text-xs text-gray-600 space-y-2">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-800 flex-shrink-0">
                       Owner/Admin
                     </span>
-                    <span>→ Преподавател</span>
+                    <span class="flex items-center gap-1">
+                      <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                      Преподавател
+                    </span>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0">
                       Member
                     </span>
-                    <span>→ Студент</span>
+                    <span class="flex items-center gap-1">
+                      <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                      Студент
+                    </span>
                   </div>
                 </div>
               </div>
@@ -79,9 +91,17 @@
       </div>
 
       <!-- Footer -->
-      <p class="text-center text-xs text-gray-500">
-        Организация: <span class="font-semibold text-gray-700">nvnacs50</span>
-      </p>
+      <div class="text-center space-y-2">
+        <p class="text-xs text-gray-500">
+          Организация: <span class="font-semibold text-gray-700">nvnacs50</span>
+        </p>
+        <div class="flex items-center justify-center gap-1 text-xs text-gray-400">
+          <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+          <span>Система за управление на оценки</span>
+        </div>
+      </div>
     </div>
   </div>
 
