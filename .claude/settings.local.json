@@ -16,7 +16,8 @@
       "Bash(wrangler deploy:*)",
       "Bash(curl:*)",
       "Bash(printf:*)",
-      "Bash(wrangler secret put:*)"
+      "Bash(wrangler secret put:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

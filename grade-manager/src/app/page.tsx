@@ -1,97 +1,55 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useState, useEffect, useCallback } from 'react';
+import { GitHubClassroomAPI, Student, StudentDetails } from '../lib/github-classroom-api';
+import StudentsTable from '../components/StudentsTable';
+import StudentDetailsModal from '../components/StudentDetailsModal';
+import { exportStudents } from '../lib/export';
 
-interface StudentGrade {
-  githubUsername: string;
-  rosterIdentifier: string;
-  assignmentName: string;
-  pointsAwarded: number;
-  maxPoints: number;
-  submissionTimestamp: string;
-}
+type ViewMode = 'github' | 'csv';
 
-interface StudentSummary {
-  name: string;
-  assignments: { [assignmentName: string]: { points: number; maxPoints: number } };
-  totalPercentage: number;
-  hasPassed: boolean;
-}
+export default function TeacherDashboard() {
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
 
-// CS50 assignment choice groups - student must complete at least ONE from each group
-const CS50_CHOICE_GROUPS = [
-  ['mario-less', 'mario-more'],
-  ['cash', 'credit'],
-  ['caesar', 'substitution'],
-  ['filter-less', 'filter-more'],
-  ['runoff', 'tideman'],
-];
+  // View mode
+  const [viewMode, setViewMode] = useState<ViewMode>('github');
 
-// Check if student has passed based on SUBMITTED assignments only
-function checkStudentPass(
-  studentAssignments: { [key: string]: { points: number; maxPoints: number } },
-  allSubmittedAssignments: string[]
-): boolean {
-  // Find which choice groups are relevant (at least one assignment from group was submitted)
-  const relevantChoiceGroups = CS50_CHOICE_GROUPS.filter(group => 
-    group.some(assignment => allSubmittedAssignments.includes(assignment))
-  );
-  
-  // Find required assignments (submitted but not in any choice group)
-  const requiredAssignments = allSubmittedAssignments.filter(assignment => 
-    !relevantChoiceGroups.some(group => group.includes(assignment))
-  );
-  
-  // Check all required assignments - student must have perfect score
-  for (const required of requiredAssignments) {
-    const grade = studentAssignments[required];
-    if (!grade || grade.points !== grade.maxPoints || grade.maxPoints === 0) {
-      return false;
-    }
-  }
-  
-  // Check each relevant choice group - student must have perfect score on AT LEAST ONE
-  for (const group of relevantChoiceGroups) {
-    // Get all scores this student has from this group
-    const scoresInGroup = group
-      .filter(assignment => studentAssignments[assignment])
-      .map(assignment => ({
-        name: assignment,
-        ...studentAssignments[assignment]
-      }));
-    
-    if (scoresInGroup.length === 0) {
-      // Student didn't submit any from this group
-      return false;
-    }
-    
-    // Check if student has perfect score on at least one assignment from this group
-    const hasPerfectInGroup = scoresInGroup.some(grade => 
-      grade.points === grade.maxPoints && grade.maxPoints > 0
-    );
-    
-    if (!hasPerfectInGroup) {
-      return false;
-    }
-  }
-  
-  return true;
-}
+  // GitHub API state
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
+  const [error, setError] = useState<string | null>(null);
 
-export default function GradeManager() {
-  const [students, setStudents] = useState<{ [studentName: string]: StudentSummary }>({});
-  const [assignments, setAssignments] = useState<string[]>([]);
-  const [user, setUser] = useState<{ login: string; avatar_url: string } | null>(null);
+  // UI state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'passed' | 'in_progress' | 'failed'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'progress' | 'lastActive'>('name');
 
+  // Student details modal
+  const [selectedStudent, setSelectedStudent] = useState<StudentDetails | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Export modal
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'csv'>('excel');
+
+  // Check authentication
   useEffect(() => {
-    // Load user data from localStorage
-    const userData = localStorage.getItem('gh_user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    const storedToken = localStorage.getItem('gh_token');
+    const storedUser = localStorage.getItem('gh_user');
+
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      setIsAuthenticated(true);
     }
   }, []);
 
+  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('gh_token');
     localStorage.removeItem('gh_user');
@@ -99,509 +57,529 @@ export default function GradeManager() {
     window.location.href = '/nvnacs50-dashboard/';
   };
 
-  const processCSV = useCallback((csvContent: string, fileName: string) => {
-    const lines = csvContent.split('\n');
-    
-    // Extract assignment name from filename
-    const assignmentName = fileName.replace('-grades-', ' ').replace('.csv', '').replace(/^\d+/, '').trim();
-    
-    let maxPointsForAssignment = 0;
-    const grades: StudentGrade[] = [];
+  // Load students from GitHub
+  const loadStudentsFromGitHub = useCallback(async () => {
+    if (!token) return;
 
-    // Parse CSV data
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim() === '') continue;
-      
-      const values = lines[i].split(',').map(v => v.replace(/"/g, ''));
-      const pointsAwarded = parseInt(values[8]) || 0;
-      const githubUsername = values[3];
-      const rosterIdentifier = values[4];
-      
-      if (pointsAwarded > maxPointsForAssignment) {
-        maxPointsForAssignment = pointsAwarded;
-      }
+    setLoading(true);
+    setError(null);
 
-      grades.push({
-        githubUsername,
-        rosterIdentifier,
-        assignmentName,
-        pointsAwarded,
-        maxPoints: maxPointsForAssignment,
-        submissionTimestamp: values[7]
-      });
-    }
-
-    // Update max points for all grades
-    grades.forEach(grade => grade.maxPoints = maxPointsForAssignment);
-
-    setStudents(prev => {
-      const updated = { ...prev };
-      
-      grades.forEach(grade => {
-        const studentName = grade.rosterIdentifier || grade.githubUsername;
-        
-        if (!updated[studentName]) {
-          updated[studentName] = {
-            name: studentName,
-            assignments: {},
-            totalPercentage: 0,
-            hasPassed: false
-          };
-        }
-
-        updated[studentName].assignments[assignmentName] = {
-          points: grade.pointsAwarded,
-          maxPoints: grade.maxPoints
-        };
+    try {
+      const api = new GitHubClassroomAPI(token);
+      const fetchedStudents = await api.getAllStudents((current, total) => {
+        setLoadingProgress({ current, total });
       });
 
-      return updated;
-    });
+      setStudents(fetchedStudents);
+    } catch (err: any) {
+      console.error('Error loading students:', err);
+      setError(err.message || 'Failed to load students from GitHub');
+    } finally {
+      setLoading(false);
+      setLoadingProgress({ current: 0, total: 0 });
+    }
+  }, [token]);
 
-    setAssignments(prev => {
-      const newAssignments = [...prev];
-      if (!newAssignments.includes(assignmentName)) {
-        newAssignments.push(assignmentName);
+  // Handle student click
+  const handleStudentClick = async (student: Student) => {
+    if (!token) return;
+
+    setLoadingDetails(true);
+    setShowModal(true);
+
+    try {
+      const api = new GitHubClassroomAPI(token);
+      const details = await api.getStudentDetails(student.username);
+
+      if (details) {
+        setSelectedStudent(details);
       }
-      return newAssignments.sort();
-    });
-  }, []);
-
-  // Recalculate pass status whenever students or assignments change
-  const studentsWithPassStatus = Object.keys(students).reduce((acc, studentName) => {
-    const student = students[studentName];
-    const assignmentKeys = Object.keys(student.assignments);
-    
-    if (assignmentKeys.length > 0) {
-      const totalEarned = assignmentKeys.reduce((sum, key) => 
-        sum + student.assignments[key].points, 0);
-      const totalPossible = assignmentKeys.reduce((sum, key) => 
-        sum + student.assignments[key].maxPoints, 0);
-      
-      acc[studentName] = {
-        ...student,
-        totalPercentage: totalPossible > 0 ? (totalEarned / totalPossible) * 100 : 0,
-        hasPassed: checkStudentPass(student.assignments, assignments)
-      };
-    } else {
-      acc[studentName] = student;
+    } catch (err) {
+      console.error('Error loading student details:', err);
+    } finally {
+      setLoadingDetails(false);
     }
-    
-    return acc;
-  }, {} as { [studentName: string]: StudentSummary });
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    acceptedFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const csvContent = reader.result as string;
-        processCSV(csvContent, file.name);
-      };
-      reader.readAsText(file);
-    });
-  }, [processCSV]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'text/csv': ['.csv']
-    }
-  });
-
-  const clearData = () => {
-    setStudents({});
-    setAssignments([]);
   };
 
-  const studentList = Object.values(studentsWithPassStatus).sort((a, b) => a.name.localeCompare(b.name));
+  // Handle export
+  const handleExport = () => {
+    const filteredStudents = students.filter((s) => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        if (!s.name.toLowerCase().includes(query) && !s.username.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+
+      if (filterStatus !== 'all' && s.status !== filterStatus) {
+        return false;
+      }
+
+      return true;
+    });
+
+    exportStudents({
+      format: exportFormat,
+      students: filteredStudents,
+      includeAll: filterStatus === 'all' && !searchQuery,
+    });
+
+    setShowExportModal(false);
+  };
 
   // Calculate statistics
-  const totalStudents = studentList.length;
-  const passedStudents = studentList.filter(s => s.hasPassed).length;
-  const overallAverage = totalStudents > 0
-    ? studentList.reduce((sum, s) => sum + s.totalPercentage, 0) / totalStudents
-    : 0;
+  const stats = {
+    total: students.length,
+    passed: students.filter((s) => s.status === 'passed').length,
+    inProgress: students.filter((s) => s.status === 'in_progress').length,
+    failed: students.filter((s) => s.status === 'failed').length,
+  };
 
-  // Per-assignment statistics
-  const assignmentStats = assignments.map(assignmentName => {
-    const studentsWithAssignment = studentList.filter(s => s.assignments[assignmentName]);
-    const perfectCount = studentsWithAssignment.filter(s => {
-      const grade = s.assignments[assignmentName];
-      return grade && grade.points === grade.maxPoints;
-    }).length;
-
-    return {
-      name: assignmentName,
-      total: studentsWithAssignment.length,
-      perfect: perfectCount,
-      percentage: studentsWithAssignment.length > 0
-        ? (perfectCount / studentsWithAssignment.length) * 100
-        : 0
-    };
-  });
-
-  // Detect which choice groups are active
-  const activeChoiceGroups = CS50_CHOICE_GROUPS.filter(group => 
-    group.some(assignment => assignments.includes(assignment))
-  );
+  // Render login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg mb-4">
+              <span className="text-3xl">📊</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">GitHub Classroom Dashboard</h2>
+            <p className="text-gray-600 mb-6">За преподаватели</p>
+            <p className="text-sm text-gray-500">Моля, влезте отново</p>
+            <button
+              onClick={handleLogout}
+              className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
+            >
+              Вход
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Title */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                <span className="text-xl sm:text-2xl">📚</span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <nav className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-xl">📊</span>
               </div>
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">GitHub Classroom</h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Преподавателски панел</p>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">GitHub Classroom</h1>
+                <p className="text-xs text-gray-500">Teacher Dashboard</p>
               </div>
             </div>
-
-            {/* User Info and Logout */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-4">
               {user && (
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2">
                   <img
                     src={user.avatar_url}
                     alt={user.login}
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-gray-200 flex-shrink-0"
+                    className="h-8 w-8 rounded-full ring-2 ring-blue-500"
                   />
-                  <div className="hidden md:block">
-                    <div className="text-sm font-medium text-gray-900">{user.login}</div>
-                    <div className="text-xs text-gray-500">Преподавател</div>
-                  </div>
+                  <span className="text-sm font-medium text-gray-700">{user.login}</span>
                 </div>
               )}
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 shadow-sm text-xs sm:text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
-                <svg className="h-4 w-4 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg className="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
-                <span className="hidden sm:inline">Изход</span>
+                Изход
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Upload Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${
-              isDragActive
-                ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 shadow-lg'
-                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-            }`}
-          >
-            <input {...getInputProps()} />
-            <div className="space-y-4">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center">
-                <span className="text-4xl">📁</span>
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-gray-900 mb-1">
-                  {isDragActive
-                    ? 'Пуснете CSV файловете тук...'
-                    : 'Плъзнете и пуснете CSV файлове тук'}
-                </p>
-                <p className="text-sm text-gray-500">
-                  или кликнете за да изберете файлове
-                </p>
-              </div>
-              <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg shadow-sm">
-                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Качи GitHub Classroom CSV файлове
-              </div>
-            </div>
+      {/* Main Content */}
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* View Mode Toggle */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+            <button
+              onClick={() => setViewMode('github')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'github'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              🔗 GitHub API
+            </button>
+            <button
+              onClick={() => setViewMode('csv')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'csv'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              📄 CSV Upload
+            </button>
           </div>
-          
-          {assignments.length > 0 && (
-            <div className="mt-6 space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
-                    </svg>
-                    {assignments.length} задачи
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
-                    </svg>
-                    {studentList.length} студенти
-                  </div>
-                </div>
-                <button
-                  onClick={clearData}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Изчисти данните
-                </button>
-              </div>
-
-              {/* Show active requirements */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-900 mb-2">Изисквания за издържане:</div>
-                    <div className="text-sm text-gray-700 space-y-2">
-                      {assignments.filter(a => !activeChoiceGroups.some(g => g.includes(a))).length > 0 && (
-                        <div className="flex items-start gap-2">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800 mt-0.5">
-                            Задължителни
-                          </span>
-                          <span className="flex-1">{assignments.filter(a => !activeChoiceGroups.some(g => g.includes(a))).join(', ')}</span>
-                        </div>
-                      )}
-                      {activeChoiceGroups.map((group, idx) => {
-                        const groupAssignments = group.filter(a => assignments.includes(a));
-                        return (
-                          <div key={idx} className="flex items-start gap-2">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 mt-0.5">
-                              Избор {idx + 1}
-                            </span>
-                            <span className="flex-1">{groupAssignments.join(' ИЛИ ')}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {studentList.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Резултати на студентите</h2>
-              <p className="text-sm text-gray-600 mt-1">Преглед на оценките и статус на издържане</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider sticky left-0 bg-gray-50">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
-                        </svg>
-                        Студент
-                      </div>
-                    </th>
-                    {assignments.map(assignment => (
-                      <th key={assignment} className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-1">
-                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd"/>
-                          </svg>
-                          {assignment}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <div className="flex items-center justify-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                        </svg>
-                        Общо
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <div className="flex items-center justify-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                        </svg>
-                        Статус
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {studentList.map(student => (
-                    <tr key={student.name} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white">
-                        {student.name}
-                      </td>
-                      {assignments.map(assignment => {
-                        const grade = student.assignments[assignment];
-                        if (!grade) {
-                          return (
-                            <td key={assignment} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                              -
-                            </td>
-                          );
-                        }
-                        
-                        const percentage = grade.maxPoints > 0 ? (grade.points / grade.maxPoints) * 100 : 0;
-                        const bgColor = percentage === 100 ? 'bg-green-100 text-green-800' : 
-                                       percentage >= 50 ? 'bg-yellow-100 text-yellow-800' : 
-                                       'bg-red-100 text-red-800';
-                        
-                        return (
-                          <td key={assignment} className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-                              {grade.points}/{grade.maxPoints}
-                            </span>
-                          </td>
-                        );
-                      })}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          student.totalPercentage === 100 ? 'bg-green-100 text-green-800' :
-                          student.totalPercentage >= 75 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {student.totalPercentage.toFixed(1)}%
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                        {student.hasPassed ? (
-                          <span className="text-green-600 text-xl">✓</span>
-                        ) : (
-                          <span className="text-red-600 text-xl">✗</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="px-6 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t">
-              <div className="space-y-6">
-                {/* Main Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
-                          Издържали
-                        </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {passedStudents}/{totalStudents}
-                        </div>
-                        <div className="text-sm text-green-600 font-semibold mt-1">
-                          {totalStudents > 0 ? ((passedStudents / totalStudents) * 100).toFixed(1) : 0}%
-                        </div>
-                      </div>
-                      <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                        <svg className="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                        </svg>
-                      </div>
-                    </div>
+        {viewMode === 'github' ? (
+          <>
+            {/* Controls Bar */}
+            <div className="mb-6 flex flex-wrap items-center gap-4">
+              {/* Search */}
+              <div className="flex-1 min-w-[300px]">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
                   </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search students..."
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
 
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
-                          Среден процент
-                        </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {overallAverage.toFixed(1)}%
-                        </div>
-                        <div className="text-sm text-blue-600 font-semibold mt-1">
-                          Обща оценка
-                        </div>
-                      </div>
-                      <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                        <svg className="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
+              {/* Filter */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <option value="all">All Students</option>
+                <option value="passed">Passed Only</option>
+                <option value="in_progress">In Progress</option>
+                <option value="failed">Failed</option>
+              </select>
 
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
-                          Всичко задачи
-                        </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                          {assignments.length}
-                        </div>
-                        <div className="text-sm text-purple-600 font-semibold mt-1">
-                          Заредени CSV
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="progress">Sort by Progress</option>
+                <option value="lastActive">Sort by Last Active</option>
+              </select>
+
+              {/* Sync Button */}
+              <button
+                onClick={loadStudentsFromGitHub}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg
+                  className={`-ml-1 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {loading ? 'Loading...' : 'Sync GitHub'}
+              </button>
+
+              {/* Export Button */}
+              {students.length > 0 && (
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  <svg
+                    className="-ml-1 mr-2 h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Export
+                </button>
+              )}
+            </div>
+
+            {/* Statistics Cards */}
+            {students.length > 0 && (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">👥</span>
                         </div>
                       </div>
-                      <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <svg className="h-6 w-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
-                        </svg>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">Total Students</dt>
+                          <dd className="text-3xl font-bold text-gray-900">{stats.total}</dd>
+                        </dl>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Per-assignment Statistics */}
-                {assignmentStats.length > 0 && (
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="h-8 w-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <svg className="h-4 w-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                        </svg>
-                      </div>
-                      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                        Процент на завършване по задача
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {assignmentStats.map(stat => (
-                        <div key={stat.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">{stat.name}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {stat.perfect}/{stat.total} перфектни
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              stat.percentage === 100 ? 'bg-green-100 text-green-800' :
-                              stat.percentage >= 75 ? 'bg-blue-100 text-blue-800' :
-                              stat.percentage >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {stat.percentage.toFixed(0)}%
-                            </span>
-                          </div>
+                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">✅</span>
                         </div>
-                      ))}
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">Passed</dt>
+                          <dd className="text-3xl font-bold text-green-600">{stats.passed}</dd>
+                        </dl>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">⏳</span>
+                        </div>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
+                          <dd className="text-3xl font-bold text-yellow-600">{stats.inProgress}</dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="h-12 w-12 bg-red-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">❌</span>
+                        </div>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">Failed</dt>
+                          <dd className="text-3xl font-bold text-red-600">{stats.failed}</dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {loading && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600 font-medium">Loading students from GitHub...</p>
+                {loadingProgress.total > 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Processing {loadingProgress.current} of {loadingProgress.total} students
+                  </p>
                 )}
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                    <div className="mt-2 text-sm text-red-700">{error}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Students Table */}
+            {!loading && students.length > 0 && (
+              <StudentsTable
+                students={students}
+                onStudentClick={handleStudentClick}
+                searchQuery={searchQuery}
+                filterStatus={filterStatus}
+                sortBy={sortBy}
+              />
+            )}
+
+            {/* Empty State */}
+            {!loading && students.length === 0 && !error && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No students loaded</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Click "Sync GitHub" to load students from the organization
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <h3 className="text-lg font-medium text-gray-900">CSV Mode</h3>
+            <p className="text-gray-500 mt-2">
+              CSV upload functionality will be preserved from the original dashboard
+            </p>
+          </div>
+        )}
+      </main>
+
+      {/* Student Details Modal */}
+      <StudentDetailsModal
+        student={selectedStudent}
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedStudent(null);
+        }}
+      />
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={() => setShowExportModal(false)}
+          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Export Data</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Format:
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="excel"
+                        checked={exportFormat === 'excel'}
+                        onChange={(e) => setExportFormat(e.target.value as any)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Excel (.xlsx) - Recommended</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={(e) => setExportFormat(e.target.value as any)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">CSV (.csv)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    {filterStatus !== 'all' || searchQuery
+                      ? `Exporting filtered students (${students.filter((s) => {
+                          if (searchQuery) {
+                            const query = searchQuery.toLowerCase();
+                            if (
+                              !s.name.toLowerCase().includes(query) &&
+                              !s.username.toLowerCase().includes(query)
+                            ) {
+                              return false;
+                            }
+                          }
+                          return filterStatus === 'all' || s.status === filterStatus;
+                        }).length} students)`
+                      : `Exporting all students (${students.length} students)`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                >
+                  Download Export
+                </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
