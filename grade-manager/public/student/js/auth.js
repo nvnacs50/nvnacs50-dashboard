@@ -147,24 +147,6 @@ class Auth {
 // Initialize auth
 const auth = new Auth();
 
-// Login button handler (for index.html)
-if (window.location.pathname.includes('/student/') && window.location.pathname.includes('index.html')) {
-  window.addEventListener('DOMContentLoaded', () => {
-    const loginBtn = document.getElementById('github-login');
-    if (loginBtn) {
-      loginBtn.addEventListener('click', () => {
-        auth.login();
-      });
-    }
-
-    // If already authenticated, redirect to dashboard
-    if (auth.isAuthenticated()) {
-      const basePath = window.location.pathname.includes('/grade-manager/') ? '/grade-manager' : '';
-      window.location.href = `${basePath}/student/dashboard.html`;
-    }
-  });
-}
-
 // Logout button handler (for dashboard.html)
 if (window.location.pathname.includes('/student/dashboard.html')) {
   window.addEventListener('DOMContentLoaded', () => {
