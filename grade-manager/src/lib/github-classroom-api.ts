@@ -57,11 +57,29 @@ export class GitHubClassroomAPI {
   private org: string;
   private cache: Map<string, { data: any; timestamp: number }>;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly CONCURRENT_REQUESTS = 50; // Limit concurrent API calls
 
   constructor(token: string, org: string = 'nvnacs50') {
     this.token = token;
     this.org = org;
     this.cache = new Map();
+  }
+
+  // Helper to batch promises for controlled concurrency
+  private async batchPromises<T>(
+    items: any[],
+    promiseFn: (item: any) => Promise<T>,
+    batchSize: number = this.CONCURRENT_REQUESTS
+  ): Promise<T[]> {
+    const results: T[] = [];
+
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(promiseFn));
+      results.push(...batchResults);
+    }
+
+    return results;
   }
 
   private async fetchWithAuth(url: string) {
@@ -170,7 +188,43 @@ export class GitHubClassroomAPI {
     return null;
   }
 
-  // No longer needed - we use repo.owner.login directly
+  private extractRealUsername(githubUsername: string): string {
+    // Remove assignment prefixes from GitHub usernames
+    // GitHub Classroom creates users like "Less-damqnkisa", "More-dobromir425"
+    // We need to extract the real username by removing these prefixes
+
+    const lower = githubUsername.toLowerCase();
+
+    // List of possible prefixes to remove (from assignment names and variants)
+    const prefixes = [
+      'less-', 'more-',
+      'cash-', 'credit-',
+      'caesar-', 'substitution-',
+      'runoff-', 'tideman-',
+      'plurality-',
+      'hello-', 'me-',
+      'mario-',
+      'scrabble-',
+      'readability-',
+      'sort-',
+      'volume-',
+      'filter-',
+      'recover-',
+      'inheritance-',
+      'speller-',
+    ];
+
+    // Check if username starts with any prefix
+    for (const prefix of prefixes) {
+      if (lower.startsWith(prefix)) {
+        // Remove prefix and return the rest
+        return githubUsername.substring(prefix.length);
+      }
+    }
+
+    // No prefix found, return original username
+    return githubUsername;
+  }
 
   async getWorkflowStatus(owner: string, repo: string): Promise<any> {
     try {
@@ -208,29 +262,25 @@ export class GitHubClassroomAPI {
   async getAllStudents(onProgress?: (current: number, total: number) => void): Promise<Student[]> {
     const repos = await this.getOrganizationRepos();
 
-    // Group repos by student (using actual GitHub username from repo owner)
+    // Group repos by student (extract real username from GitHub username)
     const studentReposMap = new Map<string, any[]>();
 
     for (const repo of repos) {
-      // Use the actual repo owner's login (real GitHub username)
-      const username = repo.owner.login;
+      // Extract real username (remove assignment prefixes like "Less-", "More-")
+      const username = this.extractRealUsername(repo.owner.login);
       if (!studentReposMap.has(username)) {
         studentReposMap.set(username, []);
       }
       studentReposMap.get(username)!.push(repo);
     }
 
-    // Fetch details for each student with batching
-    const students: Student[] = [];
     const studentUsernames = Array.from(studentReposMap.keys());
-    let processed = 0;
 
-    for (const username of studentUsernames) {
-      const repos = studentReposMap.get(username)!;
-      const assignments: Assignment[] = [];
-
-      // Fetch workflow and commit data in parallel
-      const assignmentPromises = repos.map(async (repo) => {
+    // OPTIMIZATION: Fetch ALL workflow and commit data in controlled batches
+    // This is much faster than fetching per student, and prevents rate limiting
+    const allRepoData = (await this.batchPromises(
+      repos,
+      async (repo) => {
         const assignmentName = this.parseAssignmentName(repo.name);
         if (!assignmentName) return null;
 
@@ -239,27 +289,42 @@ export class GitHubClassroomAPI {
           this.getLatestCommit(this.org, repo.name),
         ]);
 
-        const status = this.determineStatus(workflow, commit);
-
         return {
-          name: assignmentName,
           repoName: repo.name,
+          ownerLogin: repo.owner.login,
+          assignmentName,
+          workflow,
+          commit,
+          avatarUrl: repo.owner.avatar_url,
+        };
+      }
+    )).filter(d => d !== null);
+
+    // Build student objects from fetched data
+    const students: Student[] = [];
+    let processed = 0;
+
+    for (const username of studentUsernames) {
+      const studentRepoData = allRepoData.filter(
+        d => this.extractRealUsername(d!.ownerLogin) === username
+      );
+
+      const assignments: Assignment[] = studentRepoData.map(data => {
+        const status = this.determineStatus(data!.workflow, data!.commit);
+        return {
+          name: data!.assignmentName,
+          repoName: data!.repoName,
           status,
-          lastCommitDate: commit?.commit?.author?.date,
-          lastCommitMessage: commit?.commit?.message?.split('\n')[0],
-          workflowStatus: workflow?.conclusion,
-        } as Assignment;
+          lastCommitDate: data!.commit?.commit?.author?.date,
+          lastCommitMessage: data!.commit?.commit?.message?.split('\n')[0],
+          workflowStatus: data!.workflow?.conclusion,
+        };
       });
 
-      const assignmentResults = await Promise.all(assignmentPromises);
-      const validAssignments = assignmentResults.filter(a => a !== null) as Assignment[];
-      assignments.push(...validAssignments);
-
       const completedCount = assignments.filter(a => a.status === 'success').length;
-      const totalAssignments = 14; // CS50 has 14 assignments
+      const totalAssignments = 14;
       const progressPercentage = Math.round((completedCount / totalAssignments) * 100);
 
-      // Determine overall student status
       let studentStatus: Student['status'] = 'in_progress';
       if (completedCount === totalAssignments) {
         studentStatus = 'passed';
@@ -267,7 +332,6 @@ export class GitHubClassroomAPI {
         studentStatus = 'failed';
       }
 
-      // Get last active date
       const lastActive = assignments
         .map(a => a.lastCommitDate)
         .filter(d => d)
@@ -276,8 +340,8 @@ export class GitHubClassroomAPI {
       students.push({
         id: username,
         username,
-        name: username.charAt(0).toUpperCase() + username.slice(1), // Capitalize
-        avatarUrl: repos[0]?.owner?.avatar_url || '',
+        name: username.charAt(0).toUpperCase() + username.slice(1),
+        avatarUrl: studentRepoData[0]?.avatarUrl || '',
         assignments,
         completedCount,
         totalAssignments,
@@ -300,8 +364,8 @@ export class GitHubClassroomAPI {
 
   async getStudentDetails(username: string): Promise<StudentDetails | null> {
     const repos = await this.getOrganizationRepos();
-    // Use the actual repo owner's login (real GitHub username)
-    const studentRepos = repos.filter(repo => repo.owner.login === username);
+    // Filter repos by extracting real username (removing assignment prefixes)
+    const studentRepos = repos.filter(repo => this.extractRealUsername(repo.owner.login) === username);
 
     if (studentRepos.length === 0) return null;
 
