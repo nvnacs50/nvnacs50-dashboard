@@ -90,11 +90,11 @@
           </div>
 
           <!-- Accepted Assignments Card -->
-          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="openAcceptedAssignmentsModal()">
             <div class="p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <div class="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                     <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -102,7 +102,12 @@
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Приети задачи</dt>
+                    <dt class="text-sm font-medium text-gray-500 truncate flex items-center gap-1">
+                      Приети задачи
+                      <svg class="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </dt>
                     <dd class="flex items-baseline">
                       <div id="total-assignments" class="text-3xl font-bold text-gray-900">0</div>
                     </dd>
@@ -112,11 +117,12 @@
             </div>
           </div>
 
-          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+          <!-- Completed Assignments Card -->
+          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="openCompletedAssignmentsModal()">
             <div class="p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <div class="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
                     <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
@@ -124,7 +130,12 @@
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Завършени</dt>
+                    <dt class="text-sm font-medium text-gray-500 truncate flex items-center gap-1">
+                      Завършени
+                      <svg class="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </dt>
                     <dd class="flex items-baseline">
                       <div id="completed-assignments" class="text-3xl font-bold text-green-600">0</div>
                     </dd>
@@ -254,14 +265,25 @@
 
         // Populate userAssignments Set with assignment names
         userAssignments.clear();
+
+        // Also track successful assignments separately
+        window.successfulAssignments = new Set();
+
         assignments.forEach(assignment => {
           // Extract assignment name from repo name
-          // Assumes format like "nvnacs50-username-assignment-name"
-          const parts = assignment.name.split('-');
-          if (parts.length >= 3) {
-            // Get everything after username (join remaining parts)
-            const assignmentName = parts.slice(2).join('-');
-            userAssignments.add(assignmentName);
+          // GitHub Classroom format is typically: "assignment-name-username" or just "assignment-name"
+          let assignmentName = assignment.name.toLowerCase();
+
+          // Remove common prefixes (org name, username patterns)
+          assignmentName = assignmentName.replace(/^nvnacs50-/i, '');
+          assignmentName = assignmentName.replace(/-[a-z0-9]+$/i, ''); // Remove username suffix if exists
+
+          // Add to accepted assignments
+          userAssignments.add(assignmentName);
+
+          // If tests passed, add to successful
+          if (assignment.status === 'success') {
+            window.successfulAssignments.add(assignmentName);
           }
         });
 
@@ -630,6 +652,265 @@
       const percentage = (completedCount / 15) * 100;
       document.getElementById('modal-progress-bar').style.width = percentage + '%';
     }
+
+    // Open Accepted Assignments Modal
+    function openAcceptedAssignmentsModal() {
+      document.getElementById('accepted-assignments-modal').classList.remove('hidden');
+      populateAcceptedModal();
+    }
+
+    function closeAcceptedAssignmentsModal() {
+      document.getElementById('accepted-assignments-modal').classList.add('hidden');
+    }
+
+    function populateAcceptedModal() {
+      const listEl = document.getElementById('accepted-assignments-list');
+      let acceptedCount = 0;
+      let html = '';
+
+      CS50_ASSIGNMENTS.forEach(assignment => {
+        if (assignment.type === 'required') {
+          const isAccepted = userAssignments.has(assignment.name);
+          if (isAccepted) acceptedCount++;
+
+          // Only show if accepted
+          if (isAccepted) {
+            html += `
+              <div class="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <div class="flex-shrink-0 mt-0.5">
+                  <div class="h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg class="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-blue-900">${assignment.title}</p>
+                  <p class="text-xs text-blue-600 mt-0.5">Приета задача</p>
+                </div>
+              </div>
+            `;
+          }
+        } else if (assignment.type === 'choice') {
+          const completedOptions = assignment.options.filter(opt => userAssignments.has(opt.name));
+          const hasAccepted = completedOptions.length > 0;
+
+          if (hasAccepted) {
+            acceptedCount++;
+            html += `
+              <div class="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">${assignment.title}</p>
+                <div class="space-y-2 ml-3">
+                  ${assignment.options.map(option => {
+                    const optAccepted = userAssignments.has(option.name);
+                    if (optAccepted) {
+                      return `
+                        <div class="flex items-start gap-2">
+                          <div class="flex-shrink-0 mt-0.5">
+                            <div class="h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
+                              <svg class="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                              </svg>
+                            </div>
+                          </div>
+                          <p class="text-sm text-blue-900 font-medium">${option.title}</p>
+                        </div>
+                      `;
+                    }
+                    return '';
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }
+        }
+      });
+
+      if (html === '') {
+        html = '<p class="text-center text-gray-500 py-8">Няма приети задачи</p>';
+      }
+
+      listEl.innerHTML = html;
+      document.getElementById('accepted-modal-count').textContent = acceptedCount;
+      const percentage = (acceptedCount / 15) * 100;
+      document.getElementById('accepted-progress-bar').style.width = percentage + '%';
+    }
+
+    // Open Completed Assignments Modal
+    function openCompletedAssignmentsModal() {
+      document.getElementById('completed-assignments-modal').classList.remove('hidden');
+      populateCompletedModal();
+    }
+
+    function closeCompletedAssignmentsModal() {
+      document.getElementById('completed-assignments-modal').classList.add('hidden');
+    }
+
+    function populateCompletedModal() {
+      const listEl = document.getElementById('completed-assignments-list');
+      let completedCount = 0;
+      let html = '';
+
+      CS50_ASSIGNMENTS.forEach(assignment => {
+        if (assignment.type === 'required') {
+          const isCompleted = window.successfulAssignments && window.successfulAssignments.has(assignment.name);
+          if (isCompleted) completedCount++;
+
+          // Only show if completed
+          if (isCompleted) {
+            html += `
+              <div class="flex items-start gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                <div class="flex-shrink-0 mt-0.5">
+                  <div class="h-5 w-5 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg class="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-green-900">${assignment.title}</p>
+                  <p class="text-xs text-green-600 mt-0.5">Успешно завършена</p>
+                </div>
+              </div>
+            `;
+          }
+        } else if (assignment.type === 'choice') {
+          const completedOptions = assignment.options.filter(opt => window.successfulAssignments && window.successfulAssignments.has(opt.name));
+          const hasCompleted = completedOptions.length > 0;
+
+          if (hasCompleted) {
+            completedCount++;
+            html += `
+              <div class="p-3 rounded-lg bg-green-50 border border-green-200">
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">${assignment.title}</p>
+                <div class="space-y-2 ml-3">
+                  ${assignment.options.map(option => {
+                    const optCompleted = window.successfulAssignments && window.successfulAssignments.has(option.name);
+                    if (optCompleted) {
+                      return `
+                        <div class="flex items-start gap-2">
+                          <div class="flex-shrink-0 mt-0.5">
+                            <div class="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
+                              <svg class="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                              </svg>
+                            </div>
+                          </div>
+                          <p class="text-sm text-green-900 font-medium">${option.title}</p>
+                        </div>
+                      `;
+                    }
+                    return '';
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }
+        }
+      });
+
+      if (html === '') {
+        html = '<p class="text-center text-gray-500 py-8">Няма завършени задачи</p>';
+      }
+
+      listEl.innerHTML = html;
+      document.getElementById('completed-modal-count').textContent = completedCount;
+      const percentage = (completedCount / 15) * 100;
+      document.getElementById('completed-progress-bar').style.width = percentage + '%';
+    }
   </script>
+
+  <!-- Accepted Assignments Modal -->
+  <div id="accepted-assignments-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeAcceptedAssignmentsModal()"></div>
+      <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">Приети задачи</h3>
+                <p class="text-sm text-gray-600">Задачи за които имаш създадено репо</p>
+              </div>
+            </div>
+            <button onclick="closeAcceptedAssignmentsModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Прогрес</span>
+            <span class="text-sm font-semibold text-blue-600"><span id="accepted-modal-count">0</span>/15 приети</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div id="accepted-progress-bar" class="bg-gradient-to-r from-blue-600 to-cyan-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="px-6 py-4 max-h-96 overflow-y-auto">
+          <div class="space-y-4" id="accepted-assignments-list"></div>
+        </div>
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+          <button onclick="closeAcceptedAssignmentsModal()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+            Затвори
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Completed Assignments Modal -->
+  <div id="completed-assignments-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeCompletedAssignmentsModal()"></div>
+      <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">Завършени задачи</h3>
+                <p class="text-sm text-gray-600">Успешно преминати тестове</p>
+              </div>
+            </div>
+            <button onclick="closeCompletedAssignmentsModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Прогрес</span>
+            <span class="text-sm font-semibold text-green-600"><span id="completed-modal-count">0</span>/15 завършени</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div id="completed-progress-bar" class="bg-gradient-to-r from-green-600 to-emerald-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="px-6 py-4 max-h-96 overflow-y-auto">
+          <div class="space-y-4" id="completed-assignments-list"></div>
+        </div>
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+          <button onclick="closeCompletedAssignmentsModal()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+            Затвори
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
