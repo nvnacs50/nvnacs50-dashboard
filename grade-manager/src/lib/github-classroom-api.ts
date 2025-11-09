@@ -131,52 +131,46 @@ export class GitHubClassroomAPI {
     // Remove common prefixes
     let cleaned = lower.replace(/^nvnacs50-/i, '');
 
-    // Try to match against known assignments
-    for (const assignment of CS50_ASSIGNMENTS) {
-      if (cleaned.includes(assignment.name)) {
+    // Try to match against known assignments (order matters - check longer names first!)
+    // Sort by length descending to match "mario-less" before "mario"
+    const sortedAssignments = [...CS50_ASSIGNMENTS].sort((a, b) => {
+      const aLen = a.name.length;
+      const bLen = b.name.length;
+      return bLen - aLen;
+    });
+
+    for (const assignment of sortedAssignments) {
+      // Check if repo name starts with assignment name
+      if (cleaned.startsWith(assignment.name + '-') || cleaned === assignment.name) {
         return assignment.name;
       }
       if (assignment.alternativeNames) {
         for (const alt of assignment.alternativeNames) {
-          if (cleaned.includes(alt)) {
+          if (cleaned.startsWith(alt + '-') || cleaned === alt) {
             return assignment.name;
           }
         }
       }
     }
 
-    // If no match, try to extract assignment name before username
+    // Fallback: try to extract first part as assignment name
     const parts = cleaned.split('-');
     if (parts.length >= 2) {
-      return parts[0];
+      // Check if first part matches any assignment
+      for (const assignment of CS50_ASSIGNMENTS) {
+        if (assignment.name === parts[0]) {
+          return assignment.name;
+        }
+        if (assignment.alternativeNames?.includes(parts[0])) {
+          return assignment.name;
+        }
+      }
     }
 
     return null;
   }
 
-  private extractUsername(repoName: string): string {
-    const lower = repoName.toLowerCase();
-
-    // Remove org prefix
-    let cleaned = lower.replace(/^nvnacs50-/i, '');
-
-    // Find assignment name
-    const assignmentName = this.parseAssignmentName(repoName);
-
-    if (assignmentName) {
-      // Remove assignment name to get username
-      const parts = cleaned.split('-');
-      const assignmentIndex = parts.findIndex(p => p.includes(assignmentName.split('-')[0]));
-
-      if (assignmentIndex !== -1 && parts.length > assignmentIndex + 1) {
-        return parts.slice(assignmentIndex + 1).join('-');
-      }
-    }
-
-    // Fallback: take last part
-    const parts = cleaned.split('-');
-    return parts[parts.length - 1];
-  }
+  // No longer needed - we use repo.owner.login directly
 
   async getWorkflowStatus(owner: string, repo: string): Promise<any> {
     try {
@@ -214,11 +208,12 @@ export class GitHubClassroomAPI {
   async getAllStudents(onProgress?: (current: number, total: number) => void): Promise<Student[]> {
     const repos = await this.getOrganizationRepos();
 
-    // Group repos by student
+    // Group repos by student (using actual GitHub username from repo owner)
     const studentReposMap = new Map<string, any[]>();
 
     for (const repo of repos) {
-      const username = this.extractUsername(repo.name);
+      // Use the actual repo owner's login (real GitHub username)
+      const username = repo.owner.login;
       if (!studentReposMap.has(username)) {
         studentReposMap.set(username, []);
       }
@@ -305,15 +300,50 @@ export class GitHubClassroomAPI {
 
   async getStudentDetails(username: string): Promise<StudentDetails | null> {
     const repos = await this.getOrganizationRepos();
-    const studentRepos = repos.filter(repo => this.extractUsername(repo.name) === username);
+    // Use the actual repo owner's login (real GitHub username)
+    const studentRepos = repos.filter(repo => repo.owner.login === username);
 
     if (studentRepos.length === 0) return null;
 
-    // Get basic student info
-    const students = await this.getAllStudents();
-    const student = students.find(s => s.username === username);
+    // Build student info from repos (don't call getAllStudents - too slow!)
+    const assignments: Assignment[] = [];
 
-    if (!student) return null;
+    for (const repo of studentRepos) {
+      const assignmentName = this.parseAssignmentName(repo.name);
+      if (!assignmentName) continue;
+
+      const [workflow, commit] = await Promise.all([
+        this.getWorkflowStatus(this.org, repo.name),
+        this.getLatestCommit(this.org, repo.name),
+      ]);
+
+      const status = this.determineStatus(workflow, commit);
+
+      assignments.push({
+        name: assignmentName,
+        repoName: repo.name,
+        status,
+        lastCommitDate: commit?.commit?.author?.date,
+        lastCommitMessage: commit?.commit?.message?.split('\n')[0],
+        workflowStatus: workflow?.conclusion,
+      });
+    }
+
+    const completedCount = assignments.filter(a => a.status === 'success').length;
+    const totalAssignments = 14;
+    const progressPercentage = Math.round((completedCount / totalAssignments) * 100);
+
+    let studentStatus: Student['status'] = 'in_progress';
+    if (completedCount === totalAssignments) {
+      studentStatus = 'passed';
+    } else if (assignments.some(a => a.status === 'failure')) {
+      studentStatus = 'failed';
+    }
+
+    const lastActive = assignments
+      .map(a => a.lastCommitDate)
+      .filter(d => d)
+      .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
 
     // Calculate commit activity (last 14 days)
     const commitActivity = new Array(14).fill(0);
@@ -343,7 +373,16 @@ export class GitHubClassroomAPI {
     }
 
     return {
-      ...student,
+      id: username,
+      username,
+      name: username.charAt(0).toUpperCase() + username.slice(1),
+      avatarUrl: studentRepos[0]?.owner?.avatar_url || '',
+      assignments,
+      completedCount,
+      totalAssignments,
+      progressPercentage,
+      lastActive,
+      status: studentStatus,
       repos: studentRepos,
       commitActivity,
       totalCommits,
