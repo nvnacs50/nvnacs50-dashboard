@@ -1,5 +1,8 @@
 // GitHub Classroom API Client for Teachers
 
+import { cacheManager } from './cache-manager';
+import { fetchStaticCache } from './static-cache';
+
 export interface Assignment {
   name: string;
   repoName: string;
@@ -58,6 +61,14 @@ export class GitHubClassroomAPI {
   private cache: Map<string, { data: any; timestamp: number }>;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly CONCURRENT_REQUESTS = 50; // Limit concurrent API calls
+
+  // Cache configuration
+  private readonly INDEXEDDB_TTL = 30 * 60 * 1000; // 30 minutes
+  private readonly STATIC_CACHE_MAX_AGE = 2 * 60 * 60 * 1000; // 2 hours
+
+  // Track last data source for UI display
+  public lastDataSource: 'indexeddb' | 'static-cache' | 'live-api' | null = null;
+  public lastSyncTimestamp: number | null = null;
 
   constructor(token: string, org: string = 'nvnacs50') {
     this.token = token;
@@ -257,7 +268,97 @@ export class GitHubClassroomAPI {
     return workflow.conclusion === 'success' ? 'success' : 'failure';
   }
 
+  /**
+   * Get all students with hybrid caching strategy:
+   * 1. Check IndexedDB cache (<30 min)
+   * 2. Check static cache from GitHub Actions (<2 hours)
+   * 3. Fetch live from GitHub API
+   */
   async getAllStudents(onProgress?: (current: number, total: number) => void): Promise<Student[]> {
+    // Priority 1: Check IndexedDB cache (fresh < 30 min)
+    try {
+      const cached = await cacheManager.getFromCache<Student[]>('students');
+      const metadata = await cacheManager.getCacheMetadata('students');
+
+      if (cached && metadata) {
+        const age = metadata.age;
+        if (age < this.INDEXEDDB_TTL) {
+          console.log(`✅ Using IndexedDB cache (${Math.round(age / 1000)}s old)`);
+          this.lastDataSource = 'indexeddb';
+          this.lastSyncTimestamp = metadata.timestamp;
+          return cached;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to read from IndexedDB cache:', error);
+    }
+
+    // Priority 2: Check static JSON cache (fresh < 2 hours)
+    try {
+      const staticData = await fetchStaticCache();
+
+      if (staticData) {
+        const age = Date.now() - staticData.metadata.timestamp;
+
+        if (age < this.STATIC_CACHE_MAX_AGE) {
+          console.log(`✅ Using static cache (${Math.round(age / 60000)} min old)`);
+
+          // Save to IndexedDB for faster access next time
+          await cacheManager.saveToCache('students', staticData.students, this.INDEXEDDB_TTL);
+
+          this.lastDataSource = 'static-cache';
+          this.lastSyncTimestamp = staticData.metadata.timestamp;
+          return staticData.students;
+        } else {
+          console.log(`⚠️ Static cache is too old (${Math.round(age / 60000)} min), fetching live data`);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to read from static cache:', error);
+    }
+
+    // Priority 3: Fetch live from GitHub API
+    console.log('📡 Fetching live data from GitHub API...');
+    const liveData = await this.getAllStudentsFromAPI(onProgress);
+
+    // Save to IndexedDB for next time
+    try {
+      await cacheManager.saveToCache('students', liveData, this.INDEXEDDB_TTL);
+    } catch (error) {
+      console.warn('Failed to save to IndexedDB:', error);
+    }
+
+    this.lastDataSource = 'live-api';
+    this.lastSyncTimestamp = Date.now();
+
+    return liveData;
+  }
+
+  /**
+   * Force sync from GitHub API (ignores all caches)
+   */
+  async forceSync(onProgress?: (current: number, total: number) => void): Promise<Student[]> {
+    console.log('🔄 Force syncing from GitHub API...');
+    const liveData = await this.getAllStudentsFromAPI(onProgress);
+
+    // Update IndexedDB cache
+    try {
+      await cacheManager.saveToCache('students', liveData, this.INDEXEDDB_TTL);
+    } catch (error) {
+      console.warn('Failed to save to IndexedDB:', error);
+    }
+
+    this.lastDataSource = 'live-api';
+    this.lastSyncTimestamp = Date.now();
+
+    return liveData;
+  }
+
+  /**
+   * Fetch students directly from GitHub API (bypasses all caches)
+   * Use this for force sync
+   */
+  private async getAllStudentsFromAPI(onProgress?: (current: number, total: number) => void): Promise<Student[]> {
     const repos = await this.getOrganizationRepos();
 
     // Group repos by student (extract username from repo name)
@@ -463,6 +564,64 @@ export class GitHubClassroomAPI {
     };
   }
 
+  /**
+   * Get cache info for UI display
+   */
+  async getCacheInfo(): Promise<{
+    hasCache: boolean;
+    source: 'indexeddb' | 'static-cache' | 'live-api' | null;
+    timestamp: number | null;
+    age: number | null;
+  }> {
+    // Check IndexedDB first
+    try {
+      const metadata = await cacheManager.getCacheMetadata('students');
+      if (metadata) {
+        return {
+          hasCache: true,
+          source: 'indexeddb',
+          timestamp: metadata.timestamp,
+          age: metadata.age,
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get IndexedDB metadata:', error);
+    }
+
+    // Check static cache
+    try {
+      const staticData = await fetchStaticCache();
+      if (staticData) {
+        return {
+          hasCache: true,
+          source: 'static-cache',
+          timestamp: staticData.metadata.timestamp,
+          age: Date.now() - staticData.metadata.timestamp,
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get static cache metadata:', error);
+    }
+
+    return {
+      hasCache: false,
+      source: null,
+      timestamp: null,
+      age: null,
+    };
+  }
+
+  /**
+   * Clear all caches (both in-memory and IndexedDB)
+   */
+  async clearAllCaches() {
+    this.cache.clear();
+    await cacheManager.clearCache();
+  }
+
+  /**
+   * @deprecated Use clearAllCaches() instead
+   */
   clearCache() {
     this.cache.clear();
   }

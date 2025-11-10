@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { GitHubClassroomAPI, Student, StudentDetails } from '../lib/github-classroom-api';
 import StudentsTable from '../components/StudentsTable';
 import StudentDetailsModal from '../components/StudentDetailsModal';
+import CacheStatusBanner from '../components/CacheStatusBanner';
 import { exportStudents } from '../lib/export';
 
 type ViewMode = 'github' | 'csv';
@@ -22,6 +23,10 @@ export default function TeacherDashboard() {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
+
+  // Cache state
+  const [cacheTimestamp, setCacheTimestamp] = useState<number | null>(null);
+  const [cacheSource, setCacheSource] = useState<'indexeddb' | 'static-cache' | 'live-api' | null>(null);
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,8 +62,8 @@ export default function TeacherDashboard() {
     window.location.href = '/nvnacs50-dashboard/';
   };
 
-  // Load students from GitHub
-  const loadStudentsFromGitHub = useCallback(async () => {
+  // Load students from GitHub (with caching)
+  const loadStudentsFromGitHub = useCallback(async (forceSync = false) => {
     if (!token) return;
 
     setLoading(true);
@@ -66,11 +71,26 @@ export default function TeacherDashboard() {
 
     try {
       const api = new GitHubClassroomAPI(token);
-      const fetchedStudents = await api.getAllStudents((current, total) => {
-        setLoadingProgress({ current, total });
-      });
+
+      let fetchedStudents: Student[];
+
+      if (forceSync) {
+        // Force sync ignores all caches
+        fetchedStudents = await api.forceSync((current, total) => {
+          setLoadingProgress({ current, total });
+        });
+      } else {
+        // Use hybrid caching strategy
+        fetchedStudents = await api.getAllStudents((current, total) => {
+          setLoadingProgress({ current, total });
+        });
+      }
 
       setStudents(fetchedStudents);
+
+      // Update cache state from API
+      setCacheTimestamp(api.lastSyncTimestamp);
+      setCacheSource(api.lastDataSource);
     } catch (err: any) {
       console.error('Error loading students:', err);
       setError(err.message || 'Failed to load students from GitHub');
@@ -79,6 +99,13 @@ export default function TeacherDashboard() {
       setLoadingProgress({ current: 0, total: 0 });
     }
   }, [token]);
+
+  // Auto-load on mount
+  useEffect(() => {
+    if (token && students.length === 0) {
+      loadStudentsFromGitHub(false);
+    }
+  }, [token, students.length, loadStudentsFromGitHub]);
 
   // Handle student click
   const handleStudentClick = async (student: Student) => {
@@ -234,6 +261,14 @@ export default function TeacherDashboard() {
 
         {viewMode === 'github' ? (
           <>
+            {/* Cache Status Banner */}
+            <CacheStatusBanner
+              timestamp={cacheTimestamp}
+              source={cacheSource}
+              onSync={() => loadStudentsFromGitHub(true)}
+              isLoading={loading}
+            />
+
             {/* Controls Bar */}
             <div className="mb-6 flex flex-wrap items-center gap-4">
               {/* Search */}
@@ -287,27 +322,7 @@ export default function TeacherDashboard() {
                 <option value="lastActive">Sort by Last Active</option>
               </select>
 
-              {/* Sync Button */}
-              <button
-                onClick={loadStudentsFromGitHub}
-                disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <svg
-                  className={`-ml-1 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                {loading ? 'Loading...' : 'Sync GitHub'}
-              </button>
+              {/* Sync Button - removed, now in CacheStatusBanner */}
 
               {/* Export Button */}
               {students.length > 0 && (
