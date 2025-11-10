@@ -369,29 +369,43 @@ export class GitHubClassroomAPI {
 
     if (studentRepos.length === 0) return null;
 
-    // Build student info from repos (don't call getAllStudents - too slow!)
-    const assignments: Assignment[] = [];
-
-    for (const repo of studentRepos) {
+    // OPTIMIZATION: Fetch ALL data in parallel at once
+    const repoDataPromises = studentRepos.map(async (repo) => {
       const assignmentName = this.parseAssignmentName(repo.name);
-      if (!assignmentName) continue;
+      if (!assignmentName) return null;
 
-      const [workflow, commit] = await Promise.all([
+      const [workflow, commit, commits] = await Promise.all([
         this.getWorkflowStatus(this.org, repo.name),
         this.getLatestCommit(this.org, repo.name),
+        this.fetchWithAuth(
+          `https://api.github.com/repos/${this.org}/${repo.name}/commits?per_page=100`
+        ).catch(() => []), // Return empty array on error
       ]);
 
       const status = this.determineStatus(workflow, commit);
 
-      assignments.push({
-        name: assignmentName,
+      return {
+        assignmentName,
         repoName: repo.name,
         status,
-        lastCommitDate: commit?.commit?.author?.date,
-        lastCommitMessage: commit?.commit?.message?.split('\n')[0],
-        workflowStatus: workflow?.conclusion,
-      });
-    }
+        workflow,
+        commit,
+        commits,
+      };
+    });
+
+    // Wait for all data at once
+    const allRepoData = (await Promise.all(repoDataPromises)).filter(d => d !== null);
+
+    // Build assignments from fetched data
+    const assignments: Assignment[] = allRepoData.map(data => ({
+      name: data!.assignmentName,
+      repoName: data!.repoName,
+      status: data!.status,
+      lastCommitDate: data!.commit?.commit?.author?.date,
+      lastCommitMessage: data!.commit?.commit?.message?.split('\n')[0],
+      workflowStatus: data!.workflow?.conclusion,
+    }));
 
     const completedCount = assignments.filter(a => a.status === 'success').length;
     const totalAssignments = 14;
@@ -409,30 +423,26 @@ export class GitHubClassroomAPI {
       .filter(d => d)
       .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
 
-    // Calculate commit activity (last 14 days)
+    // Calculate commit activity from fetched data
     const commitActivity = new Array(14).fill(0);
     let totalCommits = 0;
+    const now = new Date();
 
-    for (const repo of studentRepos) {
-      try {
-        const commits = await this.fetchWithAuth(
-          `https://api.github.com/repos/${this.org}/${repo.name}/commits?per_page=100`
-        );
+    for (const data of allRepoData) {
+      const commits = data!.commits as any[];
+      totalCommits += commits.length;
 
-        totalCommits += commits.length;
-
-        // Count commits per day
-        const now = new Date();
-        for (const commit of commits) {
+      for (const commit of commits) {
+        try {
           const commitDate = new Date(commit.commit.author.date);
           const daysDiff = Math.floor((now.getTime() - commitDate.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysDiff >= 0 && daysDiff < 14) {
             commitActivity[13 - daysDiff]++;
           }
+        } catch (error) {
+          // Skip invalid commits
         }
-      } catch (error) {
-        console.warn(`Failed to fetch commits for ${repo.name}`);
       }
     }
 
