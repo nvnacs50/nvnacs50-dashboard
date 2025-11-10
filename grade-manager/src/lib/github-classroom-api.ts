@@ -188,42 +188,40 @@ export class GitHubClassroomAPI {
     return null;
   }
 
-  private extractRealUsername(githubUsername: string): string {
-    // Remove assignment prefixes from GitHub usernames
-    // GitHub Classroom creates users like "Less-damqnkisa", "More-dobromir425"
-    // We need to extract the real username by removing these prefixes
+  private extractUsernameFromRepo(repoName: string): string | null {
+    // Extract username from repo name format: "nvnacs50-{assignment}-{username}"
+    // Example: "nvnacs50-mario-less-damqnkisa" → "damqnkisa"
 
-    const lower = githubUsername.toLowerCase();
+    const lower = repoName.toLowerCase();
 
-    // List of possible prefixes to remove (from assignment names and variants)
-    const prefixes = [
-      'less-', 'more-',
-      'cash-', 'credit-',
-      'caesar-', 'substitution-',
-      'runoff-', 'tideman-',
-      'plurality-',
-      'hello-', 'me-',
-      'mario-',
-      'scrabble-',
-      'readability-',
-      'sort-',
-      'volume-',
-      'filter-',
-      'recover-',
-      'inheritance-',
-      'speller-',
-    ];
+    // Remove organization prefix
+    let cleaned = lower.replace(/^nvnacs50-/i, '');
 
-    // Check if username starts with any prefix
-    for (const prefix of prefixes) {
-      if (lower.startsWith(prefix)) {
-        // Remove prefix and return the rest
-        return githubUsername.substring(prefix.length);
+    // Get the assignment name
+    const assignmentName = this.parseAssignmentName(repoName);
+    if (!assignmentName) {
+      // Can't parse assignment, can't extract username
+      return null;
+    }
+
+    // Remove assignment name and the dash after it
+    if (cleaned.startsWith(assignmentName + '-')) {
+      const username = cleaned.substring(assignmentName.length + 1);
+      return username;
+    }
+
+    // Check alternative names too
+    const assignment = CS50_ASSIGNMENTS.find(a => a.name === assignmentName);
+    if (assignment?.alternativeNames) {
+      for (const alt of assignment.alternativeNames) {
+        if (cleaned.startsWith(alt + '-')) {
+          const username = cleaned.substring(alt.length + 1);
+          return username;
+        }
       }
     }
 
-    // No prefix found, return original username
-    return githubUsername;
+    return null;
   }
 
   async getWorkflowStatus(owner: string, repo: string): Promise<any> {
@@ -262,12 +260,14 @@ export class GitHubClassroomAPI {
   async getAllStudents(onProgress?: (current: number, total: number) => void): Promise<Student[]> {
     const repos = await this.getOrganizationRepos();
 
-    // Group repos by student (extract real username from GitHub username)
+    // Group repos by student (extract username from repo name)
     const studentReposMap = new Map<string, any[]>();
 
     for (const repo of repos) {
-      // Extract real username (remove assignment prefixes like "Less-", "More-")
-      const username = this.extractRealUsername(repo.owner.login);
+      // Extract username from repo name: "nvnacs50-assignment-username"
+      const username = this.extractUsernameFromRepo(repo.name);
+      if (!username) continue; // Skip repos we can't parse
+
       if (!studentReposMap.has(username)) {
         studentReposMap.set(username, []);
       }
@@ -306,7 +306,7 @@ export class GitHubClassroomAPI {
 
     for (const username of studentUsernames) {
       const studentRepoData = allRepoData.filter(
-        d => this.extractRealUsername(d!.ownerLogin) === username
+        d => this.extractUsernameFromRepo(d!.repoName) === username
       );
 
       const assignments: Assignment[] = studentRepoData.map(data => {
@@ -364,8 +364,8 @@ export class GitHubClassroomAPI {
 
   async getStudentDetails(username: string): Promise<StudentDetails | null> {
     const repos = await this.getOrganizationRepos();
-    // Filter repos by extracting real username (removing assignment prefixes)
-    const studentRepos = repos.filter(repo => this.extractRealUsername(repo.owner.login) === username);
+    // Filter repos by extracting username from repo name
+    const studentRepos = repos.filter(repo => this.extractUsernameFromRepo(repo.name) === username);
 
     if (studentRepos.length === 0) return null;
 
