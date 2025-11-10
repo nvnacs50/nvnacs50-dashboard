@@ -1,0 +1,62 @@
+name: Sync Student Data
+
+on:
+  schedule:
+    # Run every hour at minute 0
+    - cron: '0 * * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: grade-manager/package-lock.json
+
+      - name: Install dependencies
+        working-directory: grade-manager
+        run: npm ci
+
+      - name: Fetch GitHub Classroom Data
+        working-directory: grade-manager
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_CLASSROOM_TOKEN }}
+          ORG_NAME: nvnacs50
+        run: node scripts/fetch-students-data.js
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet grade-manager/public/cache/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push cache files
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add grade-manager/public/cache/
+          git commit -m "chore: update student data cache [skip ci]"
+          git push
+
+      - name: No changes detected
+        if: steps.check_changes.outputs.changed == 'false'
+        run: echo "No changes in student data, skipping commit"
