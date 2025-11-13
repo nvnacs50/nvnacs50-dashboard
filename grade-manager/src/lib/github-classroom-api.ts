@@ -33,26 +33,61 @@ export interface StudentDetails extends Student {
   totalCommits: number;
 }
 
-const CS50_ASSIGNMENTS = [
-  { name: 'hello', alternativeNames: ['me'] },
-  { name: 'mario-less', group: 'mario' },
-  { name: 'mario-more', group: 'mario' },
-  { name: 'cash', group: 'cash-credit' },
-  { name: 'credit', group: 'cash-credit' },
-  { name: 'scrabble' },
-  { name: 'readability' },
-  { name: 'caesar', group: 'cipher' },
-  { name: 'substitution', group: 'cipher' },
-  { name: 'sort' },
-  { name: 'plurality' },
-  { name: 'runoff', group: 'voting' },
-  { name: 'tideman', group: 'voting' },
-  { name: 'volume' },
-  { name: 'filter-less', group: 'filter' },
-  { name: 'filter-more', group: 'filter' },
-  { name: 'recover' },
-  { name: 'inheritance' },
-  { name: 'speller' },
+// CS50 Assignment structure with proper type definitions
+// type: 'required' - must submit this assignment
+// type: 'choice' - must submit ONE of the options
+interface CS50Assignment {
+  type: 'required' | 'choice';
+  name?: string;
+  alternativeNames?: string[];
+  options?: { name: string }[];
+}
+
+const CS50_ASSIGNMENTS: CS50Assignment[] = [
+  { name: 'hello', type: 'required', alternativeNames: ['me'] },
+  {
+    type: 'choice',
+    options: [
+      { name: 'mario-less' },
+      { name: 'mario-more' }
+    ]
+  },
+  {
+    type: 'choice',
+    options: [
+      { name: 'cash' },
+      { name: 'credit' }
+    ]
+  },
+  { name: 'scrabble', type: 'required' },
+  { name: 'readability', type: 'required' },
+  {
+    type: 'choice',
+    options: [
+      { name: 'caesar' },
+      { name: 'substitution' }
+    ]
+  },
+  { name: 'sort', type: 'required' },
+  { name: 'plurality', type: 'required' },
+  {
+    type: 'choice',
+    options: [
+      { name: 'runoff' },
+      { name: 'tideman' }
+    ]
+  },
+  { name: 'volume', type: 'required' },
+  {
+    type: 'choice',
+    options: [
+      { name: 'filter-less' },
+      { name: 'filter-more' }
+    ]
+  },
+  { name: 'recover', type: 'required' },
+  { name: 'inheritance', type: 'required' },
+  { name: 'speller', type: 'required' }
 ];
 
 export class GitHubClassroomAPI {
@@ -160,38 +195,42 @@ export class GitHubClassroomAPI {
     // Remove common prefixes
     let cleaned = lower.replace(/^nvnacs50-/i, '');
 
-    // Try to match against known assignments (order matters - check longer names first!)
-    // Sort by length descending to match "mario-less" before "mario"
-    const sortedAssignments = [...CS50_ASSIGNMENTS].sort((a, b) => {
-      const aLen = a.name.length;
-      const bLen = b.name.length;
-      return bLen - aLen;
-    });
+    // Build list of all possible assignment names with their canonical name
+    // For choice groups, each option gets mapped to the option's name itself
+    const assignmentNames: { name: string; canonical: string }[] = [];
 
-    for (const assignment of sortedAssignments) {
-      // Check if repo name starts with assignment name
-      if (cleaned.startsWith(assignment.name + '-') || cleaned === assignment.name) {
-        return assignment.name;
-      }
-      if (assignment.alternativeNames) {
-        for (const alt of assignment.alternativeNames) {
-          if (cleaned.startsWith(alt + '-') || cleaned === alt) {
-            return assignment.name;
+    for (const assignment of CS50_ASSIGNMENTS) {
+      if (assignment.type === 'required' && assignment.name) {
+        assignmentNames.push({ name: assignment.name, canonical: assignment.name });
+        if (assignment.alternativeNames) {
+          for (const alt of assignment.alternativeNames) {
+            assignmentNames.push({ name: alt, canonical: assignment.name });
           }
         }
+      } else if (assignment.type === 'choice' && assignment.options) {
+        for (const option of assignment.options) {
+          // For choice options, canonical name is the option name itself
+          assignmentNames.push({ name: option.name, canonical: option.name });
+        }
+      }
+    }
+
+    // Sort by length descending to match "mario-less" before "mario"
+    assignmentNames.sort((a, b) => b.name.length - a.name.length);
+
+    // Try to match repo name against all assignment names
+    for (const { name, canonical } of assignmentNames) {
+      if (cleaned.startsWith(name + '-') || cleaned === name) {
+        return canonical;
       }
     }
 
     // Fallback: try to extract first part as assignment name
     const parts = cleaned.split('-');
     if (parts.length >= 2) {
-      // Check if first part matches any assignment
-      for (const assignment of CS50_ASSIGNMENTS) {
-        if (assignment.name === parts[0]) {
-          return assignment.name;
-        }
-        if (assignment.alternativeNames?.includes(parts[0])) {
-          return assignment.name;
+      for (const { name, canonical } of assignmentNames) {
+        if (name === parts[0]) {
+          return canonical;
         }
       }
     }
@@ -222,7 +261,7 @@ export class GitHubClassroomAPI {
     }
 
     // Check alternative names too
-    const assignment = CS50_ASSIGNMENTS.find(a => a.name === assignmentName);
+    const assignment = CS50_ASSIGNMENTS.find(a => a.type === 'required' && a.name === assignmentName);
     if (assignment?.alternativeNames) {
       for (const alt of assignment.alternativeNames) {
         if (cleaned.startsWith(alt + '-')) {
@@ -233,6 +272,42 @@ export class GitHubClassroomAPI {
     }
 
     return null;
+  }
+
+  /**
+   * Calculate completed assignments count respecting "submit one of" choice groups
+   * If student has both mario-less AND mario-more, it counts as 1 completed, not 2
+   */
+  private calculateCompletedCount(assignments: Assignment[]): number {
+    // Build set of successfully completed assignment names
+    const successfulNames = new Set(
+      assignments
+        .filter(a => a.status === 'success')
+        .map(a => a.name)
+    );
+
+    let count = 0;
+
+    CS50_ASSIGNMENTS.forEach(assignment => {
+      if (assignment.type === 'required') {
+        // Check main name
+        let isCompleted = assignment.name ? successfulNames.has(assignment.name) : false;
+
+        // Check alternative names (e.g., "me" for "hello")
+        if (assignment.alternativeNames) {
+          isCompleted = isCompleted || assignment.alternativeNames.some(alt => successfulNames.has(alt));
+        }
+
+        if (isCompleted) count++;
+      } else if (assignment.type === 'choice') {
+        // For choice groups, count as 1 if ANY option is completed
+        // Even if student completed both mario-less AND mario-more, it's still just 1
+        const hasCompleted = assignment.options?.some(opt => successfulNames.has(opt.name)) || false;
+        if (hasCompleted) count++;
+      }
+    });
+
+    return count;
   }
 
   async getWorkflowStatus(owner: string, repo: string): Promise<any> {
@@ -422,7 +497,8 @@ export class GitHubClassroomAPI {
         };
       });
 
-      const completedCount = assignments.filter(a => a.status === 'success').length;
+      // Use calculateCompletedCount to respect "submit one of" choice groups
+      const completedCount = this.calculateCompletedCount(assignments);
       const totalAssignments = 14;
       const progressPercentage = Math.round((completedCount / totalAssignments) * 100);
 
@@ -508,7 +584,8 @@ export class GitHubClassroomAPI {
       workflowStatus: data!.workflow?.conclusion,
     }));
 
-    const completedCount = assignments.filter(a => a.status === 'success').length;
+    // Use calculateCompletedCount to respect "submit one of" choice groups
+    const completedCount = this.calculateCompletedCount(assignments);
     const totalAssignments = 14;
     const progressPercentage = Math.round((completedCount / totalAssignments) * 100);
 
