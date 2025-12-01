@@ -243,18 +243,47 @@
         assignments.forEach(assignment => {
           // Extract assignment name from repo name
           // GitHub Classroom format is typically: "assignment-name-username" or just "assignment-name"
-          let assignmentName = assignment.name.toLowerCase();
+          let repoName = assignment.name.toLowerCase();
 
-          // Remove common prefixes (org name, username patterns)
-          assignmentName = assignmentName.replace(/^nvnacs50-/i, '');
-          assignmentName = assignmentName.replace(/-[a-z0-9]+$/i, ''); // Remove username suffix if exists
+          // Remove org prefix
+          repoName = repoName.replace(/^nvnacs50-/i, '');
 
-          // Add to accepted assignments
-          userAssignments.add(assignmentName);
+          // Build list of all possible assignment names
+          const possibleNames = [];
+          CS50_ASSIGNMENTS.forEach(cs50Assignment => {
+            if (cs50Assignment.type === 'required') {
+              possibleNames.push(cs50Assignment.name);
+              if (cs50Assignment.alternativeNames) {
+                possibleNames.push(...cs50Assignment.alternativeNames);
+              }
+            } else if (cs50Assignment.type === 'choice') {
+              cs50Assignment.options.forEach(option => {
+                possibleNames.push(option.name);
+              });
+            }
+          });
 
-          // If tests passed, add to successful
-          if (assignment.status === 'success') {
-            window.successfulAssignments.add(assignmentName);
+          // Sort by length descending to match longest first
+          // This ensures "mario-less" matches before "mario" (if "mario" existed)
+          possibleNames.sort((a, b) => b.length - a.length);
+
+          // Find the assignment name
+          let assignmentName = null;
+          for (const name of possibleNames) {
+            // Check if repo name starts with this assignment name
+            // followed by a dash (and then username) or is exactly this name
+            if (repoName === name || repoName.startsWith(name + '-')) {
+              assignmentName = name;
+              break;
+            }
+          }
+
+          // If found, add it
+          if (assignmentName) {
+            userAssignments.add(assignmentName);
+            if (assignment.status === 'success') {
+              window.successfulAssignments.add(assignmentName);
+            }
           }
         });
 
