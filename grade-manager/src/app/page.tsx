@@ -324,6 +324,27 @@ export default function TeacherDashboard() {
 
               {/* Sync Button - removed, now in CacheStatusBanner */}
 
+              {/* Quiz Results Button */}
+              <a
+                href="/nvnacs50-dashboard/student/quiz-results.html"
+                className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+              >
+                <svg
+                  className="-ml-1 mr-2 h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                📝 Quiz Резултати
+              </a>
+
               {/* Export Button */}
               {students.length > 0 && (
                 <button

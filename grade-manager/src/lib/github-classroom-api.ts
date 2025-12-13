@@ -131,7 +131,7 @@ export class GitHubClassroomAPI {
   private async fetchWithAuth(url: string) {
     const response = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${this.token}`,
+        'Authorization': `token ${this.token}`,
         'Accept': 'application/vnd.github.v3+json',
       },
     });
