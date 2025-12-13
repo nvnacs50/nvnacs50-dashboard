@@ -27,6 +27,7 @@ const CONFIG = {
     return window.location.origin;
   },
 
+  
   // Quiz Questions Gist ID (PUBLIC)
   // Въпросите са в public Gist (не в repo)
   QUIZ_QUESTIONS_GIST_ID: '***REMOVED***'
