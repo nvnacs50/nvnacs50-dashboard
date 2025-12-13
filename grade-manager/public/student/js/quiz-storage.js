@@ -14,22 +14,18 @@ class QuizStorage {
    */
   async checkPreviousAttempt(username) {
     try {
-      // Get user's gists
-      const gists = await this.getUserGists();
+      const gistId = CONFIG.QUIZ_RESULTS_GIST_ID;
 
-      // Find quiz results gist
-      const quizGist = gists.find(g =>
-        g.description === this.gistDescription &&
-        g.files[this.resultsFileName]
-      );
+      // Fetch shared results Gist (no auth needed, it's private but we can read with token)
+      const response = await fetch(`https://api.github.com/gists/${gistId}`);
 
-      if (!quizGist) {
+      if (!response.ok) {
+        console.warn('Could not fetch results Gist');
         return null;
       }
 
-      // Fetch gist content
-      const gistData = await this.fetchGist(quizGist.id);
-      const content = JSON.parse(gistData.files[this.resultsFileName].content);
+      const gistData = await response.json();
+      const content = JSON.parse(gistData.files[this.resultsFileName]?.content || '[]');
 
       // Check if this user has submitted
       return content.find(result => result.username === username) || null;
@@ -41,26 +37,30 @@ class QuizStorage {
   }
 
   /**
-   * Submit quiz results
+   * Submit quiz results via Cloudflare Worker
    * @param {Object} result - Quiz result object
-   * @returns {Promise<Object>} Gist response
+   * @returns {Promise<Object>} Worker response
    */
   async submitResult(result) {
     try {
-      // Check for existing gist
-      const gists = await this.getUserGists();
-      const existingGist = gists.find(g =>
-        g.description === this.gistDescription &&
-        g.files[this.resultsFileName]
-      );
+      // Post to Cloudflare Worker (teacher's token is stored there as secret)
+      const workerUrl = 'https://quiz-results-saver.m-avramova.workers.dev';
 
-      if (existingGist) {
-        // Update existing gist
-        return await this.updateGist(existingGist.id, result);
-      } else {
-        // Create new gist
-        return await this.createGist(result);
+      const response = await fetch(workerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(result)
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || `Worker грешка: ${response.status}`);
       }
+
+      return responseData;
     } catch (error) {
       console.error('Грешка при запазване на резултат:', error);
       throw error;

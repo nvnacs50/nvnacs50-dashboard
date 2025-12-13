@@ -34,8 +34,11 @@ const CONFIG = {
 
   // Quiz Results Gist ID (PRIVATE)
   // Учителят вижда всички резултати тук
-  // Студентите засега НЕ могат да пишат (трябва backend proxy)
-  QUIZ_RESULTS_GIST_ID: '***REMOVED***'
+  QUIZ_RESULTS_GIST_ID: '***REMOVED***',
+
+  // Cloudflare Worker URL (saves results securely)
+  // Teacher's token is stored as Worker secret (not in code)
+  QUIZ_RESULTS_WORKER_URL: 'https://quiz-results-saver.m-avramova.workers.dev'
 };
 
 // Export за използване в други scripts
