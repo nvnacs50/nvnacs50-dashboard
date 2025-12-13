@@ -137,9 +137,9 @@ class MoodleXMLParser {
   }
 
   /**
-   * Load and parse XML from public GitHub Gist
+   * Load and parse XML from public GitHub Gist (direct raw URL)
    * @param {string} gistId - GitHub Gist ID
-   * @param {string} token - GitHub OAuth token (optional for public)
+   * @param {string} token - GitHub OAuth token (not used for public)
    * @returns {Promise<Array>} Array of questions
    */
   static async loadFromGist(gistId, token) {
@@ -148,28 +148,15 @@ class MoodleXMLParser {
         throw new Error('Gist ID не е конфигуриран.');
       }
 
-      // Fetch Gist metadata (no auth needed for public Gist)
-      const gistResponse = await fetch(`https://api.github.com/gists/${gistId}`);
+      // Direct raw URL (avoids CORS issues with GitHub API)
+      // Format: https://gist.githubusercontent.com/USERNAME/GIST_ID/raw/cs50-questions.xml
+      const rawUrl = `https://gist.githubusercontent.com/m-avramova/${gistId}/raw/cs50-questions.xml`;
 
-      if (!gistResponse.ok) {
-        throw new Error(`GitHub API грешка: ${gistResponse.status}`);
-      }
-
-      const gistData = await gistResponse.json();
-      const fileName = 'cs50-questions.xml';
-
-      if (!gistData.files || !gistData.files[fileName]) {
-        throw new Error(`Файл ${fileName} не е намерен в Gist`);
-      }
-
-      // Get raw URL
-      const rawUrl = gistData.files[fileName].raw_url;
-
-      // Fetch XML content (public, no auth)
+      // Fetch XML content directly
       const xmlResponse = await fetch(rawUrl);
 
       if (!xmlResponse.ok) {
-        throw new Error(`Грешка при зареждане на XML: ${xmlResponse.status}`);
+        throw new Error(`Грешка при зареждане на въпросите: ${xmlResponse.status}`);
       }
 
       const xmlContent = await xmlResponse.text();
