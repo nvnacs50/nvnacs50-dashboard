@@ -220,6 +220,7 @@ class QuizManager {
       username,
       timestamp: new Date().toISOString(),
       score: score.score,
+      total: score.total,
       percentage: score.percentage
     };
   }

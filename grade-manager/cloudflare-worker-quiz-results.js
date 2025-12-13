@@ -32,7 +32,7 @@ export default {
       const result = await request.json();
 
       // Validate result has required fields
-      if (!result.username || result.score === undefined || !result.percentage) {
+      if (!result.username || result.score === undefined || result.total === undefined || !result.percentage) {
         return new Response(JSON.stringify({
           error: 'Invalid result data'
         }), {
