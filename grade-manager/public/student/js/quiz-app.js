@@ -7,6 +7,7 @@
   let quizStorage = null;
   let allQuestions = [];
   let currentUser = null;
+  let facultyNumber = null;
 
   // DOM Elements
   const screens = {
@@ -43,6 +44,59 @@
   function showScreen(screenName) {
     Object.values(screens).forEach(screen => screen.style.display = 'none');
     screens[screenName].style.display = 'block';
+  }
+
+  /**
+   * Validate faculty number format (XXX-XXXXXX)
+   */
+  function validateFacultyNumber(value) {
+    const pattern = /^\d{3}-\d{6}$/;
+    return pattern.test(value);
+  }
+
+  /**
+   * Handle access form submission
+   */
+  function handleAccessFormSubmit(e) {
+    e.preventDefault();
+
+    const facultyInput = document.getElementById('faculty-number');
+    const passwordInput = document.getElementById('test-password');
+    const facultyError = document.getElementById('faculty-error');
+    const passwordError = document.getElementById('password-error');
+
+    // Reset errors
+    facultyError.classList.remove('visible');
+    passwordError.classList.remove('visible');
+    facultyInput.classList.remove('error');
+    passwordInput.classList.remove('error');
+
+    let hasError = false;
+
+    // Validate faculty number
+    if (!validateFacultyNumber(facultyInput.value)) {
+      facultyError.classList.add('visible');
+      facultyInput.classList.add('error');
+      hasError = true;
+    }
+
+    // Validate password
+    if (passwordInput.value !== CONFIG.QUIZ_ACCESS_PASSWORD) {
+      passwordError.classList.add('visible');
+      passwordInput.classList.add('error');
+      hasError = true;
+    }
+
+    if (hasError) {
+      return;
+    }
+
+    // Success - store faculty number and hide modal
+    facultyNumber = facultyInput.value;
+    document.getElementById('access-modal').classList.add('hidden');
+
+    // Initialize quiz
+    init();
   }
 
   /**
@@ -302,6 +356,9 @@
       // Get result
       const result = quizManager.getQuizResult(currentUser.login);
 
+      // Add faculty number
+      result.facultyNumber = facultyNumber;
+
       // Mark as attempted locally
       LocalQuizAttempts.markAttempted(currentUser.login);
 
@@ -352,11 +409,11 @@
   /**
    * Event listeners
    */
+  document.getElementById('access-form').addEventListener('submit', handleAccessFormSubmit);
   elements.startBtn.addEventListener('click', startQuiz);
   elements.prevBtn.addEventListener('click', () => quizManager.previousQuestion());
   elements.nextBtn.addEventListener('click', () => quizManager.nextQuestion());
   elements.submitBtn.addEventListener('click', submitQuiz);
 
-  // Initialize on load
-  init();
+  // Show access modal on load (init() is called after successful validation)
 })();

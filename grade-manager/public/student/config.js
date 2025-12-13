@@ -38,7 +38,10 @@ const CONFIG = {
 
   // Cloudflare Worker URL (saves results securely)
   // Teacher's token is stored as Worker secret (not in code)
-  QUIZ_RESULTS_WORKER_URL: 'https://quiz-results-saver.m-avramova.workers.dev'
+  QUIZ_RESULTS_WORKER_URL: 'https://quiz-results-saver.m-avramova.workers.dev',
+
+  // Quiz access password
+  QUIZ_ACCESS_PASSWORD: '***REMOVED***'
 };
 
 // Export за използване в други scripts
