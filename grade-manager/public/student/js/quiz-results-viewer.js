@@ -88,8 +88,7 @@
     const totalStudents = allResults.length;
     const avgScore = allResults.reduce((sum, r) => sum + parseFloat(r.percentage), 0) / totalStudents;
     const passedStudents = allResults.filter(r => parseFloat(r.percentage) >= 60).length;
-    const avgTime = allResults.reduce((sum, r) => sum + (r.timeTaken || 0), 0) / totalStudents;
-    const avgScorePoints = allResults.reduce((sum, r) => sum + r.score, 0) / totalStudents;
+    const avgTime = allResults.reduce((sum, r) => sum + r.timeTaken, 0) / totalStudents;
 
     elements.statsGrid.innerHTML = `
       <div class="stat-card">
@@ -97,16 +96,16 @@
         <div class="stat-label">Общо студенти</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">${avgScorePoints.toFixed(1)}/25</div>
-        <div class="stat-label">Средна оценка</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-value">${avgScore.toFixed(1)}%</div>
-        <div class="stat-label">Среден процент</div>
+        <div class="stat-label">Среден резултат</div>
       </div>
       <div class="stat-card">
         <div class="stat-value">${passedStudents}</div>
         <div class="stat-label">Положили (≥60%)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${formatTime(avgTime)}</div>
+        <div class="stat-label">Средно време</div>
       </div>
     `;
   }
@@ -132,34 +131,22 @@
 
     const percentage = parseFloat(result.percentage);
     const scoreClass = getScoreClass(percentage);
-    const email = generateEmail(result.facultyNumber);
-    const startTime = result.timestamp; // We only have finish time
-    const finishTime = result.timestamp;
-    const elapsedTime = result.timeTaken || 0;
 
     tr.innerHTML = `
       <td>${index}</td>
       <td><strong>${escapeHtml(result.username)}</strong></td>
-      <td>${escapeHtml(result.facultyNumber || 'N/A')}</td>
-      <td>${email}</td>
-      <td><span style="color: #48bb78; font-weight: 600;">✅ Завършен</span></td>
-      <td>${formatDate(startTime)}</td>
-      <td>${formatDate(finishTime)}</td>
-      <td>${formatTime(elapsedTime)}</td>
-      <td><span class="score-badge ${scoreClass}">${result.score}/25.00</span></td>
+      <td>${result.score}/${result.total}</td>
+      <td><span class="score-badge ${scoreClass}">${result.percentage}%</span></td>
+      <td>${formatTime(result.timeTaken)}</td>
+      <td>${formatDate(result.timestamp)}</td>
+      <td>
+        <button class="btn btn-secondary" onclick="viewDetails('${result.username}')" style="font-size: 12px; padding: 6px 12px;">
+          👁️ Детайли
+        </button>
+      </td>
     `;
 
     return tr;
-  }
-
-  /**
-   * Generate email from faculty number
-   */
-  function generateEmail(facultyNumber) {
-    if (!facultyNumber) return 'N/A';
-    // Remove dash and add @naval-acad.bg
-    const username = facultyNumber.replace('-', '');
-    return `${username}@naval-acad.bg`;
   }
 
   /**
@@ -245,26 +232,24 @@
    * Export results to CSV
    */
   function exportToCSV() {
-    const headers = ['#', 'Потребителско Име', 'Фак. номер', 'Имейл адрес', 'Състояние', 'Започнат на', 'Приключен', 'Изминало време', 'Оценка/25.00'];
+    const headers = ['#', 'Username', 'Score', 'Total', 'Percentage', 'Time (seconds)', 'Date'];
     const rows = filteredResults.map((result, index) => [
       index + 1,
       result.username,
-      result.facultyNumber || 'N/A',
-      generateEmail(result.facultyNumber),
-      'Завършен',
-      formatDate(result.timestamp),
-      formatDate(result.timestamp),
-      formatTime(result.timeTaken || 0),
-      `${result.score}/25.00`
+      result.score,
+      result.total,
+      result.percentage,
+      result.timeTaken,
+      result.timestamp
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.join(','))
     ].join('\n');
 
     // Download CSV
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
