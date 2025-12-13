@@ -25,10 +25,9 @@ const CONFIG = {
     return window.location.origin;
   },
 
-  // Quiz Questions Gist ID (PRIVATE)
-  // Попълва се автоматично от upload-questions-to-gist.js скрипта
-  // Или ръчно след създаване на private Gist
-  QUIZ_QUESTIONS_GIST_ID: '***REMOVED***' // Teacher will fill this
+  // Quiz Questions Gist ID (PUBLIC)
+  // Въпросите са в public Gist (не в repo)
+  QUIZ_QUESTIONS_GIST_ID: '***REMOVED***'
 };
 
 // Export за използване в други scripts

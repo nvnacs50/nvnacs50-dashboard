@@ -12,6 +12,9 @@ build/
 .env.local
 .env.*.local
 
+# Quiz questions (SENSITIVE - stored in Gist)
+public/student/data/cs50-questions.xml
+
 # OS files
 .DS_Store
 Thumbs.db

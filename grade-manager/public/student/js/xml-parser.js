@@ -137,24 +137,19 @@ class MoodleXMLParser {
   }
 
   /**
-   * Load and parse XML from private GitHub Gist
+   * Load and parse XML from public GitHub Gist
    * @param {string} gistId - GitHub Gist ID
-   * @param {string} token - GitHub OAuth token
+   * @param {string} token - GitHub OAuth token (optional for public)
    * @returns {Promise<Array>} Array of questions
    */
   static async loadFromGist(gistId, token) {
     try {
       if (!gistId || gistId.trim() === '') {
-        throw new Error('Gist ID не е конфигуриран. Учителят трябва да пусне upload-questions-to-gist.js скрипта.');
+        throw new Error('Gist ID не е конфигуриран.');
       }
 
-      // Fetch Gist metadata to get raw URL
-      const gistResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
-        headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
+      // Fetch Gist metadata (no auth needed for public Gist)
+      const gistResponse = await fetch(`https://api.github.com/gists/${gistId}`);
 
       if (!gistResponse.ok) {
         throw new Error(`GitHub API грешка: ${gistResponse.status}`);
@@ -170,12 +165,8 @@ class MoodleXMLParser {
       // Get raw URL
       const rawUrl = gistData.files[fileName].raw_url;
 
-      // Fetch XML content
-      const xmlResponse = await fetch(rawUrl, {
-        headers: {
-          'Authorization': `token ${token}`
-        }
-      });
+      // Fetch XML content (public, no auth)
+      const xmlResponse = await fetch(rawUrl);
 
       if (!xmlResponse.ok) {
         throw new Error(`Грешка при зареждане на XML: ${xmlResponse.status}`);
