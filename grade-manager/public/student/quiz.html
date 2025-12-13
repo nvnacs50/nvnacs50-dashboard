@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS50 Тест | NVNACS50</title>
+  <link rel="stylesheet" href="../globals.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .quiz-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .quiz-header {
+      background: #4a5568;
+      color: white;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timer {
+      font-size: 24px;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer.warning {
+      color: #fc8181;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .quiz-progress {
+      padding: 16px 24px;
+      background: #edf2f7;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .progress-bar {
+      background: #e2e8f0;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .quiz-content {
+      padding: 32px;
+    }
+
+    .question-header {
+      margin-bottom: 24px;
+    }
+
+    .question-number {
+      color: #667eea;
+      font-weight: bold;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .question-text {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    .answers-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .answer-option {
+      margin-bottom: 12px;
+    }
+
+    .answer-label {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .answer-label:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+
+    .answer-radio {
+      margin-right: 12px;
+      width: 20px;
+      height: 20px;
+      accent-color: #667eea;
+    }
+
+    .answer-text {
+      flex: 1;
+      font-size: 16px;
+    }
+
+    .answer-label input:checked + .answer-indicator {
+      border-color: #667eea;
+      background: #667eea;
+    }
+
+    .quiz-navigation {
+      padding: 24px 32px;
+      border-top: 2px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #cbd5e0;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background: #48bb78;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #38a169;
+    }
+
+    .question-navigator {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .nav-dot {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .nav-dot:hover {
+      border-color: #667eea;
+    }
+
+    .nav-dot.answered {
+      background: #c3dafe;
+      border-color: #667eea;
+    }
+
+    .nav-dot.current {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    #loading, #quiz-start, #quiz-active, #quiz-results {
+      display: none;
+    }
+
+    .start-screen, .results-screen {
+      text-align: center;
+      padding: 48px 32px;
+    }
+
+    .start-screen h1, .results-screen h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      color: #2d3748;
+    }
+
+    .start-screen p {
+      font-size: 18px;
+      color: #718096;
+      margin-bottom: 32px;
+    }
+
+    .quiz-info {
+      background: #f7fafc;
+      padding: 24px;
+      border-radius: 8px;
+      margin: 24px 0;
+      text-align: left;
+    }
+
+    .quiz-info ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .quiz-info li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .quiz-info li:last-child {
+      border-bottom: none;
+    }
+
+    .score-display {
+      font-size: 72px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 24px 0;
+    }
+
+    .score-label {
+      font-size: 18px;
+      color: #718096;
+      margin-bottom: 32px;
+    }
+
+    .error-message {
+      background: #fed7d7;
+      color: #c53030;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .success-message {
+      background: #c6f6d5;
+      color: #276749;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <!-- Loading State -->
+    <div id="loading">
+      <div class="start-screen">
+        <h1>⏳ Зареждане на въпроси...</h1>
+        <p>Моля изчакайте</p>
+      </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="quiz-start">
+      <div class="start-screen">
+        <h1>📝 CS50 Тест</h1>
+        <p>Готови ли сте да покажете знанията си по C програмиране?</p>
+
+        <div id="error-container"></div>
+
+        <div class="quiz-info">
+          <h3>Информация за теста:</h3>
+          <ul>
+            <li>📊 <strong>Въпроси:</strong> 25 въпроса (рандомизирани от 225)</li>
+            <li>⏱️ <strong>Време:</strong> 25 минути</li>
+            <li>🎯 <strong>Точкуване:</strong> 1 точка = 1 верен отговор</li>
+            <li>⚠️ <strong>Важно:</strong> Имате право на САМО 1 опит!</li>
+            <li>💾 <strong>Резултат:</strong> Автоматично се запазва в GitHub</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-primary btn-large" id="start-quiz-btn" style="font-size: 18px; padding: 16px 48px;">
+          Започни тест
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Quiz -->
+    <div id="quiz-active">
+      <!-- Header with Timer -->
+      <div class="quiz-header">
+        <div>
+          <h2 style="margin: 0;">CS50 Тест</h2>
+          <span id="username-display"></span>
+        </div>
+        <div class="timer" id="timer">25:00</div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="quiz-progress">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span id="progress-text">Въпрос 1 от 25</span>
+          <span id="answered-count">Отговорени: 0/25</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+
+        <!-- Question Navigator -->
+        <div class="question-navigator" id="question-navigator"></div>
+      </div>
+
+      <!-- Question Content -->
+      <div class="quiz-content">
+        <div class="question-header">
+          <div class="question-number" id="question-number">Въпрос 1</div>
+          <div class="question-text" id="question-text"></div>
+        </div>
+
+        <ul class="answers-list" id="answers-list"></ul>
+      </div>
+
+      <!-- Navigation -->
+      <div class="quiz-navigation">
+        <button class="btn btn-secondary" id="prev-btn">← Предишен</button>
+        <button class="btn btn-success" id="submit-btn" style="display: none;">Предай тест</button>
+        <button class="btn btn-primary" id="next-btn">Следващ →</button>
+      </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="quiz-results">
+      <div class="results-screen">
+        <h1>🎉 Тест завършен!</h1>
+
+        <div class="score-display" id="final-score">20/25</div>
+        <div class="score-label" id="score-label">Вашият резултат</div>
+
+        <div id="result-message"></div>
+
+        <div class="quiz-info">
+          <h3>Детайли:</h3>
+          <ul id="result-details"></ul>
+        </div>
+
+        <a href="dashboard.html" class="btn btn-primary">Към Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/xml-parser.js"></script>
+  <script src="js/quiz-manager.js"></script>
+  <script src="js/quiz-storage.js"></script>
+  <script src="js/quiz-app.js"></script>
+</body>
+</html>
