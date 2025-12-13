@@ -314,15 +314,20 @@
       // Mark as attempted locally
       LocalQuizAttempts.markAttempted(currentUser.login);
 
-      // Submit to GitHub
-      await quizStorage.submitResult(result);
+      // Try to submit to GitHub (but show results even if fails)
+      try {
+        await quizStorage.submitResult(result);
+      } catch (saveError) {
+        console.warn('Не можах да запазя резултата в GitHub:', saveError);
+        // Continue anyway - show results to student
+      }
 
       // Show results
       showResults(result);
 
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      alert('Грешка при запазване на резултата: ' + error.message);
+      alert('Грешка: ' + error.message);
     }
   }
 
