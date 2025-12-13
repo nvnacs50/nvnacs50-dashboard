@@ -131,7 +131,7 @@
         statusEl.textContent = 'Зареждане на потребителски данни...';
         const userResponse = await fetch('https://api.github.com/user', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github.v3+json'
           }
         });
@@ -181,7 +181,7 @@
           `https://api.github.com/user/memberships/orgs/${CONFIG.GITHUB_CLASSROOM_ORG}`,
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              'Authorization': `token ${token}`,
               'Accept': 'application/vnd.github.v3+json'
             }
           }
