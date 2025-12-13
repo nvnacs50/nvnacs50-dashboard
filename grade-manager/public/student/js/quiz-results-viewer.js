@@ -137,14 +137,19 @@
 
     const percentage = parseFloat(result.percentage);
     const scoreClass = getScoreClass(percentage);
+    const email = generateEmail(result.facultyNumber);
+    const score = `${result.score}/25.00`;
 
     tr.innerHTML = `
       <td>${index}</td>
       <td><strong>${escapeHtml(result.username)}</strong></td>
-      <td>${result.score}/${result.total}</td>
-      <td><span class="score-badge ${scoreClass}">${result.percentage}%</span></td>
-      <td>${formatTime(result.timeTaken)}</td>
+      <td>${escapeHtml(result.facultyNumber || 'N/A')}</td>
+      <td>${escapeHtml(email)}</td>
+      <td><span class="score-badge score-excellent">Завършен</span></td>
       <td>${formatDate(result.timestamp)}</td>
+      <td>${formatDate(result.timestamp)}</td>
+      <td>${formatTime(result.timeTaken)}</td>
+      <td><span class="score-badge ${scoreClass}">${score}</span></td>
       <td>
         <button class="btn btn-secondary" onclick="viewDetails('${result.username}')" style="font-size: 12px; padding: 6px 12px;">
           👁️ Детайли
@@ -153,6 +158,15 @@
     `;
 
     return tr;
+  }
+
+  /**
+   * Generate email from faculty number
+   */
+  function generateEmail(facultyNumber) {
+    if (!facultyNumber) return 'N/A';
+    const username = facultyNumber.replace('-', '');
+    return `${username}@naval-acad.bg`;
   }
 
   /**
@@ -238,20 +252,23 @@
    * Export results to CSV
    */
   function exportToCSV() {
-    const headers = ['#', 'Username', 'Score', 'Total', 'Percentage', 'Time (seconds)', 'Date'];
+    const headers = ['#', 'Потребителско име', 'Фак. номер', 'Имейл адрес', 'Състояние', 'Започнат на', 'Приключен', 'Изминало време (сек)', 'Оценка/25.00', 'Процент'];
     const rows = filteredResults.map((result, index) => [
       index + 1,
       result.username,
-      result.score,
-      result.total,
-      result.percentage,
+      result.facultyNumber || 'N/A',
+      generateEmail(result.facultyNumber),
+      'Завършен',
+      result.timestamp,
+      result.timestamp,
       result.timeTaken,
-      result.timestamp
+      `${result.score}/25.00`,
+      result.percentage + '%'
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
     // Download CSV
