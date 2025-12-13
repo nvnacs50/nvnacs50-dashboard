@@ -84,20 +84,11 @@
       // Initialize storage
       quizStorage = new QuizStorage(token);
 
-      // Check for previous attempt (localStorage)
-      if (LocalQuizAttempts.hasAttempted(currentUser.login)) {
-        showScreen('start');
-        showError('❌ Вече сте решавали този тест! Имате право на само 1 опит.');
-        elements.startBtn.disabled = true;
-        return;
-      }
-
-      // Check for previous attempt (GitHub)
+      // Check for previous attempt (GitHub Gist - source of truth)
       const previousAttempt = await quizStorage.checkPreviousAttempt(currentUser.login);
       if (previousAttempt) {
         showScreen('start');
-        showError(`❌ Вече сте решавали този тест на ${new Date(previousAttempt.timestamp).toLocaleString('bg-BG')}.
-                   Резултат: ${previousAttempt.score}/${previousAttempt.total}`);
+        showError(`❌ Вече сте решавали този тест на ${new Date(previousAttempt.timestamp).toLocaleString('bg-BG')}. Резултат: ${previousAttempt.score} (${previousAttempt.percentage}%)`);
         elements.startBtn.disabled = true;
         return;
       }
