@@ -1,3 +1,4 @@
+
 // GitHub Classroom Dashboard Configuration
 // ВАЖНО: Попълни тези стойности след като създадеш OAuth App
 
