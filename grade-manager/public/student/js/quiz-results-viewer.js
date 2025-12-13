@@ -51,7 +51,17 @@
       elements.noResults.style.display = 'none';
       elements.resultsTable.style.display = 'none';
 
-      allResults = await quizStorage.getAllResults();
+      // Fetch from configured results Gist
+      const gistId = CONFIG.QUIZ_RESULTS_GIST_ID;
+      const response = await fetch(`https://api.github.com/gists/${gistId}`);
+
+      if (!response.ok) {
+        throw new Error(`GitHub API грешка: ${response.status}`);
+      }
+
+      const gistData = await response.json();
+      const content = gistData.files['quiz-results.json']?.content || '[]';
+      allResults = JSON.parse(content);
       filteredResults = [...allResults];
 
       console.log(`Заредени ${allResults.length} резултата`);

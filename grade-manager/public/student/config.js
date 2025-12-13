@@ -27,10 +27,15 @@ const CONFIG = {
     return window.location.origin;
   },
 
-  
+
   // Quiz Questions Gist ID (PUBLIC)
   // Въпросите са в public Gist (не в repo)
-  QUIZ_QUESTIONS_GIST_ID: '***REMOVED***'
+  QUIZ_QUESTIONS_GIST_ID: '***REMOVED***',
+
+  // Quiz Results Gist ID (PRIVATE)
+  // Учителят вижда всички резултати тук
+  // Студентите засега НЕ могат да пишат (трябва backend proxy)
+  QUIZ_RESULTS_GIST_ID: '***REMOVED***'
 };
 
 // Export за използване в други scripts
