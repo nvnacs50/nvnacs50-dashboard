@@ -102,10 +102,9 @@
         return;
       }
 
-      // Load questions from private Gist
-      const gistId = CONFIG.QUIZ_QUESTIONS_GIST_ID;
-      allQuestions = await MoodleXMLParser.loadFromGist(gistId, token);
-      console.log(`✅ Заредени ${allQuestions.length} въпроса от private Gist`);
+      // Load questions from local file
+      allQuestions = await MoodleXMLParser.loadFromFile('data/cs50-questions.xml');
+      console.log(`✅ Заредени ${allQuestions.length} въпроса`);
 
       showScreen('start');
 
