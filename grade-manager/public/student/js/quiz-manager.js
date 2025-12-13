@@ -220,17 +220,7 @@ class QuizManager {
       username,
       timestamp: new Date().toISOString(),
       score: score.score,
-      total: score.total,
-      percentage: score.percentage,
-      timeTaken: score.timeTaken,
-      questionCount: this.config.questionCount,
-      timeLimit: this.config.timeLimit,
-      answers: score.details.map(d => ({
-        question: d.questionText,
-        userAnswer: d.userAnswer,
-        correctAnswer: d.correctAnswer,
-        isCorrect: d.isCorrect
-      }))
+      percentage: score.percentage
     };
   }
 
