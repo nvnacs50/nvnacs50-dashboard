@@ -225,3 +225,4 @@ MIT License - използвайте свободно!
 ---
 
 **Въпроси или проблеми?** Отворете [issue](https://github.com/nvnacs50/nvnacs50-dashboard/issues) в GitHub.
+# Force rebuild
