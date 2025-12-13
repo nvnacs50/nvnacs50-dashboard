@@ -51,9 +51,15 @@
       elements.noResults.style.display = 'none';
       elements.resultsTable.style.display = 'none';
 
-      // Fetch from configured results Gist
+      // Fetch from configured results Gist with authentication
       const gistId = CONFIG.QUIZ_RESULTS_GIST_ID;
-      const response = await fetch(`https://api.github.com/gists/${gistId}`);
+      const token = auth.getToken();
+      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
 
       if (!response.ok) {
         throw new Error(`GitHub API грешка: ${response.status}`);
