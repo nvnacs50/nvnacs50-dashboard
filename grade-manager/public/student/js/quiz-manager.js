@@ -88,6 +88,40 @@ class QuizManager {
   }
 
   /**
+   * Pause quiz timer (for anti-cheating)
+   */
+  pauseTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+
+  /**
+   * Resume quiz timer (after unlock)
+   */
+  resumeTimer() {
+    if (this.timerInterval) {
+      return; // Already running
+    }
+
+    this.timerInterval = setInterval(() => {
+      this.timeRemaining--;
+
+      if (this.onTimerTick) {
+        this.onTimerTick(this.timeRemaining);
+      }
+
+      if (this.timeRemaining <= 0) {
+        this.stopTimer();
+        if (this.onTimerExpired) {
+          this.onTimerExpired();
+        }
+      }
+    }, 1000);
+  }
+
+  /**
    * Format time as MM:SS
    * @param {number} seconds - Time in seconds
    * @returns {string} Formatted time

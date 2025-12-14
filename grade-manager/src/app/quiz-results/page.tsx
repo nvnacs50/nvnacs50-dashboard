@@ -27,6 +27,11 @@ export default function QuizResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'score' | 'date'>('date');
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; username: string; confirmInput: string }>({
+    show: false,
+    username: '',
+    confirmInput: ''
+  });
 
   useEffect(() => {
     loadResults();
@@ -148,13 +153,80 @@ export default function QuizResultsPage() {
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Add BOM for proper UTF-8 encoding in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `quiz-results-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function showDeleteModal(username: string) {
+    setDeleteModal({
+      show: true,
+      username,
+      confirmInput: ''
+    });
+  }
+
+  function closeDeleteModal() {
+    setDeleteModal({
+      show: false,
+      username: '',
+      confirmInput: ''
+    });
+  }
+
+  async function handleDelete() {
+    if (deleteModal.confirmInput !== deleteModal.username) {
+      alert('Потребителското име не съвпада!');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('gh_token');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const gistId = '***REMOVED***'; // QUIZ_RESULTS_GIST_ID
+
+      // Filter out the deleted result
+      const updatedResults = results.filter(r => r.username !== deleteModal.username);
+
+      // Update Gist
+      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: {
+            'quiz-results.json': {
+              content: JSON.stringify(updatedResults, null, 2)
+            }
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update Gist: ${response.status}`);
+      }
+
+      // Update local state
+      setResults(updatedResults);
+      closeDeleteModal();
+
+      alert(`✅ Резултатът на ${deleteModal.username} е изтрит успешно!`);
+    } catch (err: any) {
+      console.error('Error deleting result:', err);
+      alert('Грешка при изтриване: ' + (err.message || 'Unknown error'));
+    }
   }
 
   // Calculate stats
@@ -375,6 +447,7 @@ export default function QuizResultsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Приключен</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Изминало време</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Оценка/25.00</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -399,6 +472,14 @@ export default function QuizResultsPage() {
                             {result.score}/25.00 ({result.percentage}%)
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => showDeleteModal(result.username)}
+                            className="inline-flex items-center px-3 py-1.5 border border-red-300 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                          >
+                            🗑️ Изтрий
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -408,6 +489,55 @@ export default function QuizResultsPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-3">⚠️</div>
+              <h2 className="text-2xl font-bold text-red-600 mb-2">Изтриване на резултат</h2>
+              <p className="text-gray-600 mb-4">
+                Сигурни ли сте, че искате да изтриете резултата на <strong>{deleteModal.username}</strong>?
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Това действие е необратимо. За да потвърдите, моля въведете потребителското име:
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <input
+                type="text"
+                value={deleteModal.confirmInput}
+                onChange={(e) => setDeleteModal({ ...deleteModal, confirmInput: e.target.value })}
+                placeholder="Въведете потребителско име"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-center font-medium"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Отказ
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteModal.confirmInput !== deleteModal.username}
+                className={`flex-1 px-4 py-2 border shadow-sm text-sm font-medium rounded-lg ${
+                  deleteModal.confirmInput === deleteModal.username
+                    ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                    : 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+                }`}
+              >
+                🗑️ Изтрий
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

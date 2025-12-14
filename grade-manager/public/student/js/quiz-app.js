@@ -9,6 +9,8 @@
   let currentUser = null;
   let facultyNumber = null;
   let quizStartTime = null;
+  let isQuizLocked = false;
+  let tabSwitchCount = 0;
 
   // DOM Elements
   const screens = {
@@ -45,6 +47,133 @@
   function showScreen(screenName) {
     Object.values(screens).forEach(screen => screen.style.display = 'none');
     screens[screenName].style.display = 'block';
+  }
+
+  /**
+   * Lock quiz when student switches tabs (anti-cheating)
+   */
+  function lockQuiz() {
+    if (isQuizLocked) return; // Already locked
+
+    isQuizLocked = true;
+    tabSwitchCount++;
+
+    // Pause timer
+    if (quizManager) {
+      quizManager.pauseTimer();
+    }
+
+    // Show lock modal
+    showLockModal();
+  }
+
+  /**
+   * Show lock modal with teacher password prompt
+   */
+  function showLockModal() {
+    const modal = document.createElement('div');
+    modal.id = 'lock-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    `;
+
+    modal.innerHTML = `
+      <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+        <h2 style="color: #c53030; margin-bottom: 1rem; font-size: 1.5rem;">Тестът е заключен!</h2>
+        <p style="color: #666; margin-bottom: 1.5rem;">
+          Засечена е смяна на таб или прозорец.<br/>
+          Това е регистрирано като опит за измама.<br/>
+          <strong>Брой засечени опити: ${tabSwitchCount}</strong>
+        </p>
+        <p style="color: #333; margin-bottom: 1rem; font-weight: 600;">
+          Моля, въведете парола от преподавател за да продължите:
+        </p>
+        <input type="password" id="teacher-unlock-password"
+               placeholder="Парола от преподавател"
+               style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 6px; margin-bottom: 1rem; font-size: 1rem;"/>
+        <div id="unlock-error" style="color: #c53030; margin-bottom: 1rem; display: none; font-size: 0.875rem;">
+          Грешна парола!
+        </div>
+        <button id="unlock-btn"
+                style="width: 100%; padding: 0.75rem; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+          Продължи
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const passwordInput = document.getElementById('teacher-unlock-password');
+    const unlockBtn = document.getElementById('unlock-btn');
+    const unlockError = document.getElementById('unlock-error');
+
+    // Focus password input
+    setTimeout(() => passwordInput.focus(), 100);
+
+    // Handle unlock
+    const attemptUnlock = () => {
+      const password = passwordInput.value;
+
+      // Teacher password from config
+      const teacherPassword = '***REMOVED***'; // Can be changed to CONFIG.TEACHER_UNLOCK_PASSWORD
+
+      if (password === teacherPassword) {
+        // Unlock successful
+        unlockQuiz();
+        modal.remove();
+      } else {
+        // Wrong password
+        unlockError.style.display = 'block';
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+    };
+
+    unlockBtn.addEventListener('click', attemptUnlock);
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') attemptUnlock();
+    });
+  }
+
+  /**
+   * Unlock quiz after teacher password
+   */
+  function unlockQuiz() {
+    isQuizLocked = false;
+
+    // Resume timer
+    if (quizManager) {
+      quizManager.resumeTimer();
+    }
+  }
+
+  /**
+   * Setup anti-cheating monitoring
+   */
+  function setupAntiCheating() {
+    // Detect tab visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && screens.active.style.display === 'block' && !isQuizLocked) {
+        lockQuiz();
+      }
+    });
+
+    // Detect window blur (switching to another app)
+    window.addEventListener('blur', () => {
+      if (screens.active.style.display === 'block' && !isQuizLocked) {
+        lockQuiz();
+      }
+    });
   }
 
   /**
@@ -153,6 +282,9 @@
       const gistId = CONFIG.QUIZ_QUESTIONS_GIST_ID;
       allQuestions = await MoodleXMLParser.loadFromGist(gistId, token);
       console.log(`✅ Заредени ${allQuestions.length} въпроса`);
+
+      // Setup anti-cheating monitoring
+      setupAntiCheating();
 
       showScreen('start');
 
