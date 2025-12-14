@@ -129,7 +129,7 @@ export default function QuizResultsPage() {
   function getScoreClass(percentage: number): string {
     if (percentage >= 90) return 'bg-green-100 text-green-800';
     if (percentage >= 75) return 'bg-blue-100 text-blue-800';
-    if (percentage >= 60) return 'bg-yellow-100 text-yellow-800';
+    if (percentage >= 50) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   }
 
@@ -223,7 +223,7 @@ export default function QuizResultsPage() {
     avgScore: results.length > 0
       ? (results.reduce((sum, r) => sum + parseFloat(r.percentage), 0) / results.length).toFixed(1)
       : '0',
-    passed: results.filter(r => parseFloat(r.percentage) >= 60).length,
+    passed: results.filter(r => parseFloat(r.percentage) >= 50).length,
     avgTime: results.length > 0 && results.some(r => r.timeTaken)
       ? Math.floor(results.reduce((sum, r) => sum + (r.timeTaken || 0), 0) / results.length)
       : 0
@@ -305,7 +305,7 @@ export default function QuizResultsPage() {
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Положили (≥60%)</dt>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Положили (≥50%)</dt>
                       <dd className="text-3xl font-bold text-green-600">{stats.passed}</dd>
                     </dl>
                   </div>
