@@ -410,6 +410,8 @@
 
       const label = document.createElement('label');
       label.className = 'answer-label';
+      // Add keyboard shortcut indicator (1, 2, 3, 4)
+      label.setAttribute('data-key', index + 1);
 
       const radio = document.createElement('input');
       radio.type = 'radio';
@@ -549,6 +551,34 @@
   }
 
   /**
+   * Keyboard shortcuts for answer selection (1, 2, 3, 4)
+   */
+  function handleKeyboardShortcuts(e) {
+    // Only handle keyboard shortcuts when quiz is active and not locked
+    if (screens.active.style.display !== 'block' || isQuizLocked) {
+      return;
+    }
+
+    // Check if key is 1, 2, 3, or 4
+    const key = e.key;
+    if (['1', '2', '3', '4'].includes(key)) {
+      const answerIndex = parseInt(key) - 1;
+      const question = quizManager.getCurrentQuestion();
+
+      // Check if this answer index exists for current question
+      if (answerIndex < question.answers.length) {
+        handleAnswerSelect(answerIndex);
+
+        // Update radio button UI
+        const radios = elements.answersList.querySelectorAll('.answer-radio');
+        radios.forEach((radio, index) => {
+          radio.checked = (index === answerIndex);
+        });
+      }
+    }
+  }
+
+  /**
    * Event listeners
    */
   document.getElementById('access-form').addEventListener('submit', handleAccessFormSubmit);
@@ -556,6 +586,9 @@
   elements.prevBtn.addEventListener('click', () => quizManager.previousQuestion());
   elements.nextBtn.addEventListener('click', () => quizManager.nextQuestion());
   elements.submitBtn.addEventListener('click', submitQuiz);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', handleKeyboardShortcuts);
 
   // Show access modal on load (init() is called after successful validation)
 })();

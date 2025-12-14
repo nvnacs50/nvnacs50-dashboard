@@ -103,6 +103,11 @@
       line-height: 1.5;
       margin: 12px 0;
       border: 1px solid #4a5568;
+      /* Prevent text selection/copying */
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
 
     .question-text pre code {
@@ -129,11 +134,36 @@
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
+      position: relative;
     }
 
     .answer-label:hover {
       border-color: #667eea;
       background: #f7fafc;
+    }
+
+    /* Keyboard shortcut indicator */
+    .answer-label::before {
+      content: attr(data-key);
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 24px;
+      height: 24px;
+      background: #e2e8f0;
+      color: #718096;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      font-family: monospace;
+    }
+
+    .answer-label:hover::before {
+      background: #667eea;
+      color: white;
     }
 
     .answer-radio {
