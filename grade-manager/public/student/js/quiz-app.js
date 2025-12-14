@@ -399,7 +399,8 @@
 
     // Update question header
     elements.questionNumber.textContent = `Въпрос ${questionIndex + 1}`;
-    elements.questionText.textContent = question.question;
+    // Use innerHTML to preserve code formatting (pre tags)
+    elements.questionText.innerHTML = question.question;
 
     // Render answers
     elements.answersList.innerHTML = '';
