@@ -39,7 +39,7 @@ jobs:
           # Copy Next.js build output to /teacher subdirectory
           cp -r grade-manager/out/* deploy-output/teacher/
 
-          # Copy static files to root
+          # Copy static files to root (these will be used by login/callback pages)
           cp grade-manager/public/index.html deploy-output/
           cp grade-manager/public/callback.html deploy-output/
           cp grade-manager/public/config.js deploy-output/
