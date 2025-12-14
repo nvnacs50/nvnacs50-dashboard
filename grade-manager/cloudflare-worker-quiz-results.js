@@ -27,9 +27,21 @@ export default {
       });
     }
 
+    // Get URL path
+    const url = new URL(request.url);
+    const isDeleteRequest = url.pathname.endsWith('/delete');
+
     try {
       // Parse request body
-      const result = await request.json();
+      const requestData = await request.json();
+
+      // Handle DELETE endpoint
+      if (isDeleteRequest) {
+        return await handleDelete(requestData, env, corsHeaders);
+      }
+
+      // Handle SUBMIT endpoint (original functionality)
+      const result = requestData;
 
       // Validate result has required fields
       if (!result.username || result.score === undefined || result.total === undefined || !result.percentage) {
@@ -143,3 +155,117 @@ export default {
     }
   }
 };
+
+/**
+ * Handle delete request - remove a quiz result by username
+ */
+async function handleDelete(requestData, env, corsHeaders) {
+  try {
+    // Validate request
+    if (!requestData.username) {
+      return new Response(JSON.stringify({
+        error: 'Username is required'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get environment variables
+    const GIST_ID = env.QUIZ_RESULTS_GIST_ID;
+    const GITHUB_TOKEN = env.GITHUB_TOKEN;
+
+    if (!GIST_ID || !GITHUB_TOKEN) {
+      return new Response(JSON.stringify({
+        error: 'Worker not configured properly'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Fetch current Gist content
+    const gistResponse = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Quiz-Results-Worker'
+      }
+    });
+
+    if (!gistResponse.ok) {
+      return new Response(JSON.stringify({
+        error: 'Failed to fetch Gist',
+        status: gistResponse.status
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const gistData = await gistResponse.json();
+    const currentContent = JSON.parse(
+      gistData.files['quiz-results.json']?.content || '[]'
+    );
+
+    // Filter out the result to delete
+    const updatedContent = currentContent.filter(r => r.username !== requestData.username);
+
+    // Check if anything was actually deleted
+    if (updatedContent.length === currentContent.length) {
+      return new Response(JSON.stringify({
+        error: 'Резултат не е намерен'
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Update Gist
+    const updateResponse = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Quiz-Results-Worker'
+      },
+      body: JSON.stringify({
+        files: {
+          'quiz-results.json': {
+            content: JSON.stringify(updatedContent, null, 2)
+          }
+        }
+      })
+    });
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      return new Response(JSON.stringify({
+        error: 'Failed to delete result',
+        details: errorText
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Success
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Резултатът е изтрит успешно!'
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      message: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}

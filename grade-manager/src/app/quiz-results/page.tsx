@@ -187,38 +187,26 @@ export default function QuizResultsPage() {
     }
 
     try {
-      const token = localStorage.getItem('gh_token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
+      // Use Cloudflare Worker to delete (it has the Gist owner's token)
+      const workerUrl = 'https://quiz-results-saver.m-avramova.workers.dev/delete';
 
-      const gistId = '***REMOVED***'; // QUIZ_RESULTS_GIST_ID
-
-      // Filter out the deleted result
-      const updatedResults = results.filter(r => r.username !== deleteModal.username);
-
-      // Update Gist
-      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-        method: 'PATCH',
+      const response = await fetch(workerUrl, {
+        method: 'POST',
         headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          files: {
-            'quiz-results.json': {
-              content: JSON.stringify(updatedResults, null, 2)
-            }
-          }
+          username: deleteModal.username
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update Gist: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to delete: ${response.status}`);
       }
 
-      // Update local state
+      // Update local state - filter out deleted result
+      const updatedResults = results.filter(r => r.username !== deleteModal.username);
       setResults(updatedResults);
       closeDeleteModal();
 

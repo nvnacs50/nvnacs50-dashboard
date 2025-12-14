@@ -124,7 +124,7 @@
     document.getElementById('github-login').addEventListener('click', () => {
       const clientId = CONFIG.GITHUB_CLIENT_ID;
       const redirectUri = CONFIG.REDIRECT_URI;
-      const scope = 'read:user read:org repo';
+      const scope = 'read:user read:org repo gist';
 
       // Generate random state for CSRF protection
       const state = Math.random().toString(36).substring(2, 15) +
