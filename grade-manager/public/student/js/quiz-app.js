@@ -551,7 +551,7 @@
   }
 
   /**
-   * Keyboard shortcuts for answer selection (1, 2, 3, 4)
+   * Keyboard shortcuts for answer selection (1, 2, 3, 4) and navigation (Enter)
    */
   function handleKeyboardShortcuts(e) {
     // Only handle keyboard shortcuts when quiz is active and not locked
@@ -559,10 +559,39 @@
       return;
     }
 
-    // Check if key is 1, 2, 3, or 4
     const key = e.key;
-    if (['1', '2', '3', '4'].includes(key)) {
-      const answerIndex = parseInt(key) - 1;
+
+    // Handle Enter key for next question
+    if (key === 'Enter') {
+      e.preventDefault();
+
+      const questionIndex = quizManager.currentQuestionIndex;
+      const isLastQuestion = questionIndex === quizManager.currentQuestions.length - 1;
+
+      if (isLastQuestion) {
+        // On last question, Enter submits the quiz
+        elements.submitBtn.click();
+      } else {
+        // Otherwise, go to next question
+        elements.nextBtn.click();
+      }
+      return;
+    }
+
+    // Handle number keys (1, 2, 3, 4) for answer selection
+    // Support both regular numbers and numpad
+    const numberKeys = ['1', '2', '3', '4'];
+    const numpadKeys = ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4'];
+
+    let answerIndex = -1;
+
+    if (numberKeys.includes(key)) {
+      answerIndex = parseInt(key) - 1;
+    } else if (numpadKeys.includes(key)) {
+      answerIndex = parseInt(key.replace('Numpad', '')) - 1;
+    }
+
+    if (answerIndex >= 0) {
       const question = quizManager.getCurrentQuestion();
 
       // Check if this answer index exists for current question

@@ -54,6 +54,25 @@
       border-bottom: 2px solid #e2e8f0;
     }
 
+    .keyboard-hint {
+      background: #f0f4ff;
+      color: #5a67d8;
+      padding: 8px 16px;
+      font-size: 13px;
+      text-align: center;
+      border-bottom: 1px solid #d6e0ff;
+    }
+
+    .keyboard-hint kbd {
+      background: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #cbd5e0;
+      font-family: monospace;
+      font-weight: bold;
+      margin: 0 2px;
+    }
+
     .progress-bar {
       background: #e2e8f0;
       height: 8px;
@@ -204,12 +223,29 @@
     .btn-primary {
       background: #667eea;
       color: white;
+      position: relative;
+      padding-right: 70px; /* Make room for Enter badge */
     }
 
     .btn-primary:hover:not(:disabled) {
       background: #5a67d8;
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Enter key indicator on Next/Submit buttons */
+    #next-btn::after,
+    #submit-btn::after {
+      content: '⏎';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
     }
 
     .btn-secondary {
@@ -513,6 +549,11 @@
           <span id="username-display"></span>
         </div>
         <div class="timer" id="timer">25:00</div>
+      </div>
+
+      <!-- Keyboard Shortcuts Hint -->
+      <div class="keyboard-hint">
+        ⌨️ Keyboard shortcuts: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> за избор на отговор • <kbd>Enter ⏎</kbd> за следващ въпрос
       </div>
 
       <!-- Progress Bar -->
