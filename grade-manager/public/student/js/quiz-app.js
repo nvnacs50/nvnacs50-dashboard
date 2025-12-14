@@ -8,6 +8,7 @@
   let allQuestions = [];
   let currentUser = null;
   let facultyNumber = null;
+  let quizStartTime = null;
 
   // DOM Elements
   const screens = {
@@ -91,8 +92,9 @@
       return;
     }
 
-    // Success - store faculty number and hide modal
+    // Success - store faculty number, start time, and hide modal
     facultyNumber = facultyInput.value;
+    quizStartTime = new Date().toISOString();
     document.getElementById('access-modal').classList.add('hidden');
 
     // Initialize quiz
@@ -356,8 +358,15 @@
       // Get result
       const result = quizManager.getQuizResult(currentUser.login);
 
-      // Add faculty number
+      // Add faculty number and timestamps
       result.facultyNumber = facultyNumber;
+      result.startedAt = quizStartTime;
+      result.completedAt = new Date().toISOString();
+
+      // Calculate time taken in seconds
+      const startTime = new Date(quizStartTime);
+      const endTime = new Date(result.completedAt);
+      result.timeTaken = Math.floor((endTime - startTime) / 1000);
 
       // Mark as attempted locally
       LocalQuizAttempts.markAttempted(currentUser.login);

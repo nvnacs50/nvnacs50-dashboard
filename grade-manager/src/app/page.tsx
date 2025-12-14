@@ -326,7 +326,7 @@ export default function TeacherDashboard() {
 
               {/* Quiz Results Button */}
               <a
-                href="/nvnacs50-dashboard/student/quiz-results.html"
+                href="/nvnacs50-dashboard/teacher/quiz-results"
                 className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
               >
                 <svg

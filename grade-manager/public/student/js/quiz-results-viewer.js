@@ -146,9 +146,9 @@
       <td>${escapeHtml(result.facultyNumber || 'N/A')}</td>
       <td>${escapeHtml(email)}</td>
       <td><span class="score-badge score-excellent">Завършен</span></td>
-      <td>${formatDate(result.timestamp)}</td>
-      <td>${formatDate(result.timestamp)}</td>
-      <td>${formatTime(result.timeTaken)}</td>
+      <td>${formatDate(result.startedAt || result.timestamp)}</td>
+      <td>${formatDate(result.completedAt || result.timestamp)}</td>
+      <td>${formatTime(result.timeTaken || 0)}</td>
       <td><span class="score-badge ${scoreClass}">${score}</span></td>
       <td>
         <button class="btn btn-secondary" onclick="viewDetails('${result.username}')" style="font-size: 12px; padding: 6px 12px;">
@@ -259,9 +259,9 @@
       result.facultyNumber || 'N/A',
       generateEmail(result.facultyNumber),
       'Завършен',
-      result.timestamp,
-      result.timestamp,
-      result.timeTaken,
+      result.startedAt || result.timestamp,
+      result.completedAt || result.timestamp,
+      result.timeTaken || 0,
       `${result.score}/25.00`,
       result.percentage + '%'
     ]);
