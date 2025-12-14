@@ -490,7 +490,10 @@
       // Stop timer
       quizManager.stopTimer();
 
-      // Get result
+      // Get detailed score (includes answers breakdown)
+      const scoreDetails = quizManager.calculateScore();
+
+      // Get basic result for Gist submission (WITHOUT detailed answers)
       const result = quizManager.getQuizResult(currentUser.login);
 
       // Add faculty number and timestamps
@@ -503,15 +506,30 @@
       const endTime = new Date(result.completedAt);
       result.timeTaken = Math.floor((endTime - startTime) / 1000);
 
+      // Store detailed answers in sessionStorage (temporary, for review page)
+      const reviewData = {
+        score: scoreDetails.score,
+        total: scoreDetails.total,
+        percentage: scoreDetails.percentage,
+        timeTaken: result.timeTaken,
+        completedAt: result.completedAt,
+        answers: scoreDetails.details.map(detail => ({
+          question: detail.questionText,
+          userAnswer: detail.userAnswer,
+          isCorrect: detail.isCorrect
+        }))
+      };
+      sessionStorage.setItem('quiz_review_data', JSON.stringify(reviewData));
+
       // Mark as attempted locally
       LocalQuizAttempts.markAttempted(currentUser.login);
 
-      // Submit to GitHub
+      // Submit to GitHub Gist (WITHOUT detailed answers)
       await quizStorage.submitResult(result);
       console.log('✅ Резултатът е запазен в GitHub Gist');
 
-      // Show results
-      showResults(result);
+      // Redirect to review page
+      window.location.href = 'review.html';
 
     } catch (error) {
       console.error('Error submitting quiz:', error);

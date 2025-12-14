@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Преглед на Резултати - CS50 Тест</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .answer-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+
+    .answer-badge.correct {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .answer-badge.incorrect {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .question-item {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid transparent;
+    }
+
+    .question-item.correct {
+      border-left-color: #10b981;
+    }
+
+    .question-item.incorrect {
+      border-left-color: #ef4444;
+    }
+
+    .question-text {
+      font-size: 16px;
+      color: #1f2937;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .question-text pre {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', Consolas, Monaco, monospace;
+      font-size: 14px;
+      overflow-x: auto;
+      margin: 12px 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    .score-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .score-big {
+      font-size: 72px;
+      font-weight: bold;
+      margin: 16px 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .stat-item {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-900 mb-2">📊 Преглед на Резултати</h1>
+      <p class="text-gray-600">CS50 Тест - Детайлен Преглед</p>
+    </div>
+
+    <!-- Score Card -->
+    <div class="score-card">
+      <div class="text-xl opacity-90">Вашият Резултат</div>
+      <div class="score-big" id="score-display">-/-</div>
+      <div class="text-2xl mb-4" id="percentage-display">0%</div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Верни</div>
+          <div class="stat-value" id="correct-count">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Грешни</div>
+          <div class="stat-value" id="incorrect-count">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Време</div>
+          <div class="stat-value" id="time-taken">00:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Message -->
+    <div id="performance-message" class="mb-8 p-6 rounded-xl text-center text-lg font-medium"></div>
+
+    <!-- Questions Review Section -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">📝 Детайлен Преглед на Отговорите</h2>
+      <p class="text-gray-600 mb-6">
+        Прегледайте вашите отговори. Зелените означават верни отговори, червените - грешни.
+      </p>
+
+      <div id="questions-container">
+        <!-- Questions will be inserted here by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4 justify-center mb-8">
+      <a href="dashboard.html"
+         class="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
+        📚 Към Dashboard
+      </a>
+    </div>
+
+    <!-- Info Message -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center text-sm text-blue-800">
+      <p>ℹ️ Този преглед е временен и ще изчезне когато затворите браузъра.</p>
+      <p class="mt-1">Правилните отговори на грешните въпроси НЕ се показват, за да се предотврати преписване.</p>
+    </div>
+  </div>
+
+  <script src="js/quiz-review.js"></script>
+</body>
+</html>
