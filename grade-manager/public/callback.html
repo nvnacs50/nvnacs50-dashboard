@@ -151,6 +151,19 @@
         localStorage.setItem('gh_user', JSON.stringify(user));
         localStorage.setItem('gh_role', orgRole);
 
+        // Ако логинът е започнал от линк за задача, връщаме се там,
+        // вместо в таблото.
+        const pendingAssignment = sessionStorage.getItem('pending_assignment');
+        if (pendingAssignment) {
+          sessionStorage.removeItem('pending_assignment');
+          statusEl.textContent = 'Подготвяме задачата...';
+          setTimeout(() => {
+            window.location.href =
+              `${basePath}/accept.html?a=${encodeURIComponent(pendingAssignment)}`;
+          }, 300);
+          return;
+        }
+
         // Redirect based on role
         if (orgRole === 'teacher') {
           statusEl.textContent = 'Добре дошли, преподавател!';
