@@ -1,0 +1,10 @@
+name = "nvnacs50-assignments"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[[kv_namespaces]]
+binding = "ASSIGNMENTS"
+id = "97c4185a031344e49bc983b2b6dc45ab"
+
+# GITHUB_TOKEN е secret, не се записва тук:
+#   npx wrangler secret put GITHUB_TOKEN
