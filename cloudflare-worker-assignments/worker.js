@@ -98,13 +98,13 @@ async function handleAccept(request, env) {
     }
     if (!generated.ok) {
       return fail(request, 502, 'generate_failed',
-        'GitHub отказа да създаде repo-то. Пиши на преподавателя.');
+        'GitHub отказа да създаде repo-то. Пиши на преподавателя.', generated.status);
     }
     created = true;
     await bumpRateLimit(env);
   } else if (!existing.ok) {
     return fail(request, 502, 'lookup_failed',
-      'GitHub не отговаря в момента. Опитай пак след минута.');
+      'GitHub не отговаря в момента. Опитай пак след минута.', existing.status);
   }
 
   // Ако предишен опит е спрял тук, повторното цъкане минава по този път
@@ -124,7 +124,7 @@ async function handleAccept(request, env) {
     });
   } else if (collaborator.status !== 204) {
     return fail(request, 502, 'access_failed',
-      'Repo-то е създадено, но достъпът не бе даден. Пиши на преподавателя.');
+      'Repo-то е създадено, но достъпът не бе даден. Пиши на преподавателя.', collaborator.status);
   }
 
   return json(request, 200, { repo, url: `https://github.com/${ORG}/${repo}`, created });
@@ -190,8 +190,12 @@ function json(request, status, data) {
   });
 }
 
-function fail(request, status, error, message) {
-  return json(request, status, { error, message });
+function fail(request, status, error, message, githubStatus) {
+  const body = { error, message };
+  // Кодът от GitHub помага при диагностика (изтекъл token, липсващо право).
+  // Не съдържа нищо тайно.
+  if (githubStatus !== undefined) body.githubStatus = githubStatus;
+  return json(request, status, body);
 }
 
 function bearer(request) {
