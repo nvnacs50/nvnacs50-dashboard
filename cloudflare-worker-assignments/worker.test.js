@@ -186,3 +186,79 @@ describe('POST /accept', () => {
     expect((await res.json()).message).toMatch(/преподавател/);
   });
 });
+
+describe('изключена задача', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('връща 403 и не пипа GitHub', async () => {
+    const calls = mockGitHub([{ status: 200, body: { login: 'a' } }]);
+    const env = makeEnv({ ASSIGNMENTS: kvStub({ 'enabled:speller': '0' }) });
+    const res = await worker.fetch(acceptRequest('speller'), env);
+    expect(res.status).toBe(403);
+    expect(calls.some(c => c.url.endsWith('/generate'))).toBe(false);
+  });
+});
+
+describe('почасов лимит', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('връща 429 при достигнат таван', async () => {
+    const hour = new Date().toISOString().slice(0, 13);
+    const env = makeEnv({ ASSIGNMENTS: kvStub({ [`rate:${hour}`]: '200' }) });
+    mockGitHub([{ status: 200, body: { login: 'a' } }]);
+    const res = await worker.fetch(acceptRequest('hello'), env);
+    expect(res.status).toBe(429);
+  });
+
+  it('брои само реални създавания, не повторни цъквания', async () => {
+    const env = makeEnv();
+    const hour = new Date().toISOString().slice(0, 13);
+    mockGitHub([
+      { status: 200, body: { login: 'a' } },
+      { status: 200, body: {} },
+      { status: 204 }
+    ]);
+    await worker.fetch(acceptRequest('hello'), env);
+    expect(await env.ASSIGNMENTS.get(`rate:${hour}`)).toBeNull();
+  });
+});
+
+describe('POST /admin/toggle', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  function toggleRequest(assignment, enabled) {
+    return new Request('https://w.dev/admin/toggle', {
+      method: 'POST',
+      headers: { Origin: ORIGIN, Authorization: 'Bearer teacher-oauth',
+                 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignment, enabled })
+    });
+  }
+
+  it('отказва на не-админ', async () => {
+    mockGitHub([{ status: 200, body: { role: 'member' } }]);
+    const res = await worker.fetch(toggleRequest('speller', false), makeEnv());
+    expect(res.status).toBe(403);
+  });
+
+  it('отказва на човек извън организацията', async () => {
+    mockGitHub([{ status: 404, body: {} }]);
+    const res = await worker.fetch(toggleRequest('speller', false), makeEnv());
+    expect(res.status).toBe(403);
+  });
+
+  it('админ изключва задача', async () => {
+    mockGitHub([{ status: 200, body: { role: 'admin' } }]);
+    const env = makeEnv();
+    const res = await worker.fetch(toggleRequest('speller', false), env);
+    expect(res.status).toBe(200);
+    expect(await env.ASSIGNMENTS.get('enabled:speller')).toBe('0');
+  });
+
+  it('админ включва задача обратно', async () => {
+    mockGitHub([{ status: 200, body: { role: 'admin' } }]);
+    const env = makeEnv({ ASSIGNMENTS: kvStub({ 'enabled:speller': '0' }) });
+    await worker.fetch(toggleRequest('speller', true), env);
+    expect(await env.ASSIGNMENTS.get('enabled:speller')).toBe('1');
+  });
+});

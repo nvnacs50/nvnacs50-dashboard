@@ -28,6 +28,11 @@ export default {
       return handleAccept(request, env);
     }
 
+    if (url.pathname === '/admin/toggle') {
+      if (request.method !== 'POST') return fail(request, 405, 'method_not_allowed', 'Само POST.');
+      return handleToggle(request, env);
+    }
+
     return fail(request, 404, 'not_found', 'Няма такъв адрес.');
   }
 };
@@ -65,6 +70,16 @@ async function handleAccept(request, env) {
   }
   const login = (await userRes.json()).login;
 
+  if (await env.ASSIGNMENTS.get(`enabled:${assignment.slug}`) === '0') {
+    return fail(request, 403, 'assignment_closed',
+      'Записването за тази задача е затворено.');
+  }
+
+  if (!(await underRateLimit(env))) {
+    return fail(request, 429, 'rate_limited',
+      'Твърде много заявки в момента. Опитай след няколко минути.');
+  }
+
   const repo = studentRepoName(assignment.slug, login);
   const teacherToken = env.GITHUB_TOKEN;
 
@@ -86,6 +101,7 @@ async function handleAccept(request, env) {
         'GitHub отказа да създаде repo-то. Пиши на преподавателя.');
     }
     created = true;
+    await bumpRateLimit(env);
   } else if (!existing.ok) {
     return fail(request, 502, 'lookup_failed',
       'GitHub не отговаря в момента. Опитай пак след минута.');
@@ -112,6 +128,46 @@ async function handleAccept(request, env) {
   }
 
   return json(request, 200, { repo, url: `https://github.com/${ORG}/${repo}`, created });
+}
+
+const RATE_LIMIT_PER_HOUR = 200;
+
+// Груб предпазител срещу изтекъл линк, попаднал в грешни ръце. Не е атомичен —
+// при едновременни заявки може да пропусне някоя, което е приемливо за таван,
+// чиято цел е да спре хиляди, а не да брои точно.
+function rateKey() {
+  return `rate:${new Date().toISOString().slice(0, 13)}`;
+}
+
+async function underRateLimit(env) {
+  const current = parseInt((await env.ASSIGNMENTS.get(rateKey())) || '0', 10);
+  return current < RATE_LIMIT_PER_HOUR;
+}
+
+async function bumpRateLimit(env) {
+  const key = rateKey();
+  const current = parseInt((await env.ASSIGNMENTS.get(key)) || '0', 10);
+  await env.ASSIGNMENTS.put(key, String(current + 1), { expirationTtl: 7200 });
+}
+
+async function handleToggle(request, env) {
+  const token = bearer(request);
+  if (!token) return fail(request, 401, 'no_token', 'Липсва токен.');
+
+  const membership = await gh(`/user/memberships/orgs/${ORG}`, { token });
+  if (!membership.ok) {
+    return fail(request, 403, 'not_admin', 'Само преподавател може да прави това.');
+  }
+  if ((await membership.json()).role !== 'admin') {
+    return fail(request, 403, 'not_admin', 'Само преподавател може да прави това.');
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const assignment = resolveAssignment(body && body.assignment);
+  if (!assignment) return fail(request, 400, 'unknown_assignment', 'Няма такава задача.');
+
+  await env.ASSIGNMENTS.put(`enabled:${assignment.slug}`, body.enabled ? '1' : '0');
+  return json(request, 200, { slug: assignment.slug, enabled: !!body.enabled });
 }
 
 function corsHeaders(request) {
