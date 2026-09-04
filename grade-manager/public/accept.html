@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Задача — CS50</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px;
+    }
+    .card {
+      background: white; padding: 3rem 2rem; border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center;
+      max-width: 460px; width: 100%;
+    }
+    h1 { color: #333; font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .slug { color: #667eea; font-family: monospace; font-size: 1.1rem; margin-bottom: 1.5rem; }
+    p { color: #666; font-size: 0.95rem; line-height: 1.5; }
+    .btn {
+      display: inline-block; margin-top: 1.5rem; padding: 0.85rem 1.75rem;
+      background: #667eea; color: white; border: none; border-radius: 8px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: #5a67d8; }
+    .spinner {
+      border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%;
+      width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 1.5rem auto 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error {
+      background: #fff5f5; border: 1px solid #fc8181; color: #c53030;
+      padding: 1rem; border-radius: 6px; margin-top: 1.5rem; font-size: 0.9rem;
+    }
+    .repo { font-family: monospace; color: #333; font-size: 0.95rem; margin-top: 0.5rem; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 id="heading">Задача</h1>
+    <div class="slug" id="slug"></div>
+
+    <div id="intro" hidden>
+      <p>Влез с GitHub, за да получиш своето repo за тази задача.</p>
+      <button class="btn" id="login">Влез с GitHub</button>
+    </div>
+
+    <div id="working" hidden>
+      <p id="working-text">Подготвяме repo-то ти...</p>
+      <div class="spinner"></div>
+    </div>
+
+    <div id="done" hidden>
+      <p id="done-text"></p>
+      <div class="repo" id="repo-name"></div>
+      <a class="btn" id="open" href="#">Отвори repo-то</a>
+    </div>
+
+    <div class="error" id="error" hidden></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('a') || '';
+
+    const el = (id) => document.getElementById(id);
+    const show = (id) => { el(id).hidden = false; };
+    const hide = (id) => { el(id).hidden = true; };
+
+    function showError(message) {
+      hide('working'); hide('intro');
+      el('error').textContent = message;
+      show('error');
+    }
+
+    el('slug').textContent = slug;
+
+    if (!slug) {
+      showError('Линкът е непълен. Пиши на преподавателя.');
+    } else {
+      start();
+    }
+
+    async function start() {
+      // Заглавието идва от Worker-а, за да не се дублира списъкът със задачи тук.
+      try {
+        const res = await fetch(`${CONFIG.ASSIGNMENTS_WORKER_URL}/assignments`);
+        const list = await res.json();
+        const found = list.find(a => a.slug === slug);
+        if (found) el('heading').textContent = found.title;
+      } catch (e) {
+        // Заглавието е козметика — ако не се зареди, продължаваме със slug-а.
+      }
+
+      const token = localStorage.getItem('gh_token');
+      if (token) {
+        accept(token);
+      } else {
+        show('intro');
+      }
+    }
+
+    el('login').addEventListener('click', () => {
+      // callback.html връща тук по тази следа, за да не се пипат
+      // регистрираните callback URL-и на OAuth App-а.
+      sessionStorage.setItem('pending_assignment', slug);
+
+      const state = crypto.randomUUID();
+      sessionStorage.setItem('oauth_state', state);
+
+      const url = 'https://github.com/login/oauth/authorize'
+        + `?client_id=${CONFIG.GITHUB_CLIENT_ID}`
+        + `&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}`
+        + `&scope=${encodeURIComponent('read:user repo')}`
+        + `&state=${state}`;
+      window.location.href = url;
+    });
+
+    async function accept(token) {
+      hide('intro');
+      show('working');
+
+      let res, data;
+      try {
+        res = await fetch(`${CONFIG.ASSIGNMENTS_WORKER_URL}/accept`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assignment: slug })
+        });
+        data = await res.json();
+      } catch (e) {
+        showError('Няма връзка със сървъра. Провери интернета и опитай пак.');
+        return;
+      }
+
+      if (res.status === 401) {
+        localStorage.removeItem('gh_token');
+        hide('working');
+        show('intro');
+        el('intro').querySelector('p').textContent =
+          'Влизането е изтекло. Влез отново, за да получиш задачата.';
+        return;
+      }
+
+      if (!res.ok) {
+        showError(data.message || 'Нещо се обърка. Пиши на преподавателя.');
+        return;
+      }
+
+      hide('working');
+      el('done-text').textContent = data.created
+        ? 'Готово! Ето твоето repo:'
+        : 'Вече имаш repo за тази задача:';
+      el('repo-name').textContent = data.repo;
+      el('open').href = data.url;
+      show('done');
+    }
+  </script>
+</body>
+</html>
