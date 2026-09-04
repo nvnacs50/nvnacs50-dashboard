@@ -1,0 +1,13 @@
+{
+  "name": "nvnacs50-assignments",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0",
+    "wrangler": "^4.129.0"
+  }
+}
