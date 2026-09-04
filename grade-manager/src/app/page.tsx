@@ -324,6 +324,14 @@ export default function TeacherDashboard() {
 
               {/* Sync Button - removed, now in CacheStatusBanner */}
 
+              {/* Assignment Links Button */}
+              <a
+                href="/nvnacs50-dashboard/teacher/assignments"
+                className="inline-flex items-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              >
+                🔗 Линкове за задачи
+              </a>
+
               {/* Quiz Results Button */}
               <a
                 href="/nvnacs50-dashboard/teacher/quiz-results"
