@@ -45,7 +45,73 @@ async function handleList(request, env) {
 }
 
 async function handleAccept(request, env) {
-  return fail(request, 501, 'not_implemented', 'Още не е готово.');
+  const studentToken = bearer(request);
+  if (!studentToken) {
+    return fail(request, 401, 'no_token', 'Влез с GitHub, за да получиш задачата.');
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const assignment = resolveAssignment(body && body.assignment);
+  if (!assignment) {
+    return fail(request, 400, 'unknown_assignment',
+      'Този линк е невалиден. Пиши на преподавателя.');
+  }
+
+  // Истинският потребител идва оттук и само оттук. Каквото и да носи тялото
+  // на заявката, то не участва в името на repo-то.
+  const userRes = await gh('/user', { token: studentToken });
+  if (!userRes.ok) {
+    return fail(request, 401, 'bad_token', 'Влизането е изтекло. Влез отново.');
+  }
+  const login = (await userRes.json()).login;
+
+  const repo = studentRepoName(assignment.slug, login);
+  const teacherToken = env.GITHUB_TOKEN;
+
+  const existing = await gh(`/repos/${ORG}/${repo}`, { token: teacherToken });
+  let created = false;
+
+  if (existing.status === 404) {
+    const generated = await gh(`/repos/${ORG}/${assignment.template}/generate`, {
+      token: teacherToken,
+      method: 'POST',
+      body: { owner: ORG, name: repo, private: true }
+    });
+    if (generated.status === 422) {
+      return fail(request, 409, 'name_taken',
+        'Има repo с това име, което не е твое. Пиши на преподавателя.');
+    }
+    if (!generated.ok) {
+      return fail(request, 502, 'generate_failed',
+        'GitHub отказа да създаде repo-то. Пиши на преподавателя.');
+    }
+    created = true;
+  } else if (!existing.ok) {
+    return fail(request, 502, 'lookup_failed',
+      'GitHub не отговаря в момента. Опитай пак след минута.');
+  }
+
+  // Ако предишен опит е спрял тук, повторното цъкане минава по този път
+  // и довършва достъпа върху вече създаденото repo.
+  const collaborator = await gh(`/repos/${ORG}/${repo}/collaborators/${login}`, {
+    token: teacherToken,
+    method: 'PUT',
+    body: { permission: 'push' }
+  });
+
+  if (collaborator.status === 201) {
+    const invitation = await collaborator.json();
+    // Без това GitHub праща имейл-покана и студентът трябва да я приеме ръчно.
+    await gh(`/user/repository_invitations/${invitation.id}`, {
+      token: studentToken,
+      method: 'PATCH'
+    });
+  } else if (collaborator.status !== 204) {
+    return fail(request, 502, 'access_failed',
+      'Repo-то е създадено, но достъпът не бе даден. Пиши на преподавателя.');
+  }
+
+  return json(request, 200, { repo, url: `https://github.com/${ORG}/${repo}`, created });
 }
 
 function corsHeaders(request) {

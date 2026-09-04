@@ -65,3 +65,124 @@ describe('маршрутизация', () => {
     expect(res.status).toBe(405);
   });
 });
+
+// Помощник: пуска поредица от отговори по ред на извикване и записва заявките.
+function mockGitHub(responses) {
+  const calls = [];
+  global.fetch = vi.fn(async (url, init = {}) => {
+    calls.push({ url, method: init.method || 'GET', headers: init.headers || {},
+                 body: init.body ? JSON.parse(init.body) : null });
+    const next = responses.shift();
+    if (!next) throw new Error(`Неочаквана заявка: ${init.method || 'GET'} ${url}`);
+    return new Response(next.body === undefined ? null : JSON.stringify(next.body),
+                        { status: next.status });
+  });
+  return calls;
+}
+
+function acceptRequest(assignment, extra = {}) {
+  return new Request('https://w.dev/accept', {
+    method: 'POST',
+    headers: { Origin: ORIGIN, Authorization: 'Bearer student-token',
+               'Content-Type': 'application/json' },
+    body: JSON.stringify({ assignment, ...extra })
+  });
+}
+
+describe('POST /accept', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('отказва без Authorization', async () => {
+    const res = await worker.fetch(
+      new Request('https://w.dev/accept', { method: 'POST', body: '{}' }), makeEnv());
+    expect(res.status).toBe(401);
+  });
+
+  it('отказва непозната задача, преди да пипне GitHub', async () => {
+    const calls = mockGitHub([]);
+    const res = await worker.fetch(acceptRequest('../../etc/passwd'), makeEnv());
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('unknown_assignment');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('пълен път: създава repo, добавя достъп и приема поканата', async () => {
+    const calls = mockGitHub([
+      { status: 200, body: { login: 'Zdravkov14' } },
+      { status: 404, body: {} },
+      { status: 201, body: { name: 'filter-less-Zdravkov14' } },
+      { status: 201, body: { id: 999 } },
+      { status: 204 }
+    ]);
+
+    const res = await worker.fetch(acceptRequest('filter-less'), makeEnv());
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      repo: 'filter-less-Zdravkov14',
+      url: 'https://github.com/nvnacs50/filter-less-Zdravkov14',
+      created: true
+    });
+
+    const generate = calls[2];
+    expect(generate.url).toBe(
+      'https://api.github.com/repos/nvnacs50/nvnacs50-classroom-fall2025-filter-less-2023-fall-filter-less/generate');
+    expect(generate.body).toEqual({ owner: 'nvnacs50', name: 'filter-less-Zdravkov14', private: true });
+    expect(generate.headers.Authorization).toBe('Bearer teacher-token');
+
+    expect(calls[3].body).toEqual({ permission: 'push' });
+
+    // Поканата се приема с токена на СТУДЕНТА, не на преподавателя
+    expect(calls[4].url).toBe('https://api.github.com/user/repository_invitations/999');
+    expect(calls[4].method).toBe('PATCH');
+    expect(calls[4].headers.Authorization).toBe('Bearer student-token');
+  });
+
+  it('игнорира username, подаден в тялото', async () => {
+    const calls = mockGitHub([
+      { status: 200, body: { login: 'realstudent' } },
+      { status: 404, body: {} },
+      { status: 201, body: {} },
+      { status: 204 }
+    ]);
+    await worker.fetch(acceptRequest('hello', { username: 'victim', login: 'victim' }), makeEnv());
+    expect(calls[2].body.name).toBe('hello-realstudent');
+  });
+
+  it('идемпотентност: съществуващо repo не се пресъздава', async () => {
+    const calls = mockGitHub([
+      { status: 200, body: { login: 'Zdravkov14' } },
+      { status: 200, body: { name: 'speller-Zdravkov14' } },
+      { status: 204 }
+    ]);
+    const res = await worker.fetch(acceptRequest('speller'), makeEnv());
+    expect(await res.json()).toMatchObject({ created: false, repo: 'speller-Zdravkov14' });
+    expect(calls.some(c => c.url.endsWith('/generate'))).toBe(false);
+  });
+
+  it('204 от collaborators не води до PATCH на покана', async () => {
+    const calls = mockGitHub([
+      { status: 200, body: { login: 'a' } },
+      { status: 200, body: {} },
+      { status: 204 }
+    ]);
+    await worker.fetch(acceptRequest('recover'), makeEnv());
+    expect(calls.some(c => c.method === 'PATCH')).toBe(false);
+  });
+
+  it('невалиден токен на студента → 401', async () => {
+    mockGitHub([{ status: 401, body: { message: 'Bad credentials' } }]);
+    const res = await worker.fetch(acceptRequest('hello'), makeEnv());
+    expect(res.status).toBe(401);
+  });
+
+  it('заето име при generate → 409 с обяснение', async () => {
+    mockGitHub([
+      { status: 200, body: { login: 'a' } },
+      { status: 404, body: {} },
+      { status: 422, body: { message: 'name already exists' } }
+    ]);
+    const res = await worker.fetch(acceptRequest('cash'), makeEnv());
+    expect(res.status).toBe(409);
+    expect((await res.json()).message).toMatch(/преподавател/);
+  });
+});
