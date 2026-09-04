@@ -10,6 +10,9 @@ const CONFIG = {
   // URL на Cloudflare Worker за token exchange
   OAUTH_PROXY_URL: 'https://github-classroom-oauth.m-avramova.workers.dev/auth',
 
+  // Worker, който създава студентски repo-та от темплейт
+  ASSIGNMENTS_WORKER_URL: 'https://nvnacs50-assignments.m-avramova.workers.dev',
+
   // GitHub Organization
   // Филтрира само repos от тази organization
   GITHUB_CLASSROOM_ORG: 'nvnacs50',
