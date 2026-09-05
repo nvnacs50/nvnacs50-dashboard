@@ -7,6 +7,21 @@ import { Student } from '../../lib/github-classroom-api';
 const WORKER_URL = 'https://nvnacs50-assignments.m-avramova.workers.dev';
 const SITE_BASE = 'https://nvnacs50.github.io/nvnacs50-dashboard';
 
+// В коя седмица от CS50 попада всяка задача. Оттам идва и цветът на реда —
+// не е украса, а информация: 1 функции · 2 масиви · 3 алгоритми ·
+// 4 памет · 5 структури от данни.
+const WEEK: Record<string, number> = {
+  hello: 1, 'mario-less': 1, 'mario-more': 1, cash: 1, credit: 1,
+  scrabble: 2, readability: 2, caesar: 2, substitution: 2,
+  sort: 3, plurality: 3, runoff: 3, tideman: 3,
+  volume: 4, 'filter-less': 4, 'filter-more': 4, recover: 4,
+  inheritance: 5, speller: 5,
+};
+
+const WEEK_LABEL: Record<number, string> = {
+  1: 'Функции', 2: 'Масиви', 3: 'Алгоритми', 4: 'Памет', 5: 'Структури от данни',
+};
+
 interface AssignmentRow {
   slug: string;
   title: string;
@@ -97,83 +112,181 @@ export default function AssignmentsPage() {
     }
   }
 
+  const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : 0;
+  const peak = counts ? Math.max(1, ...Object.values(counts)) : 1;
+  const openCount = assignments.filter(a => a.enabled).length;
+
+  // Разбивка по седмици за лентата най-горе.
+  const byWeek = [1, 2, 3, 4, 5].map(week => ({
+    week,
+    label: WEEK_LABEL[week],
+    count: counts
+      ? assignments
+          .filter(a => WEEK[a.slug] === week)
+          .reduce((sum, a) => sum + (counts[a.slug] || 0), 0)
+      : 0,
+  }));
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-ground font-ui text-ink">
+      <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col gap-6">
+
+        <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Линкове за задачи</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold tracking-tight">Линкове за задачи</h1>
+            <p className="mt-1 text-sm text-muted max-w-prose">
               Дай линка на студентите. Който го отвори, получава private repo с достъп само за него.
             </p>
           </div>
           <a
             href="/nvnacs50-dashboard/teacher"
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="rounded-box border border-line bg-surface px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-line-strong"
           >
             ← Към таблото
           </a>
-        </div>
+        </header>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="rounded-box border border-danger-soft bg-danger-soft px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
 
-        {loading ? (
-          <div className="text-gray-500">Зареждане...</div>
-        ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Задача</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Приели</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Линк</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Записване</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {assignments.map(a => (
-                  <tr key={a.slug} className={a.enabled ? '' : 'bg-gray-50'}>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{a.title}</div>
-                      <div className="text-xs text-gray-500 font-mono">{a.slug}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {counts ? (counts[a.slug] || 0) : '—'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => copy(a.slug)}
-                        className="px-3 py-1.5 border border-blue-300 rounded-lg text-sm text-blue-700 bg-blue-50 hover:bg-blue-100"
-                      >
-                        {copied === a.slug ? '✓ Копирано' : 'Копирай линка'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => toggle(a.slug, !a.enabled)}
-                        disabled={toggling === a.slug}
-                        className={
-                          a.enabled
-                            ? 'px-3 py-1.5 rounded-lg text-sm text-green-700 bg-green-50 border border-green-300 hover:bg-green-100 disabled:opacity-50'
-                            : 'px-3 py-1.5 rounded-lg text-sm text-gray-600 bg-gray-100 border border-gray-300 hover:bg-gray-200 disabled:opacity-50'
-                        }
-                      >
-                        {a.enabled ? 'Отворено' : 'Затворено'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Обобщение: колко задачи са раздадени и как се разпределят по седмици */}
+        <section className="rounded-card border border-line bg-surface p-5 shadow-card">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                {counts ? 'Раздадени задачи' : 'Задачи в курса'}
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums">
+                {counts ? total : assignments.length}
+                <span className="ml-2 text-sm font-medium text-muted">
+                  {counts ? 'repo-та в организацията' : 'готови за раздаване'}
+                </span>
+              </p>
+            </div>
+            <p className="text-sm text-muted">
+              <span className="font-semibold text-ink tabular-nums">{openCount}</span> от{' '}
+              <span className="tabular-nums">{assignments.length}</span> задачи приемат записване
+            </p>
           </div>
-        )}
+
+          {counts && total > 0 && (
+            <>
+              <div className="mt-4 flex h-2 gap-1 overflow-hidden rounded-pill">
+                {byWeek.filter(w => w.count > 0).map(w => (
+                  <span
+                    key={w.week}
+                    className="h-full rounded-pill"
+                    style={{ width: `${(w.count / total) * 100}%`, background: `var(--wk${w.week})` }}
+                  />
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+                {byWeek.map(w => (
+                  <span key={w.week} className="flex items-center gap-2 text-xs text-muted">
+                    <i
+                      className="h-2 w-2 rounded-pill"
+                      style={{ background: `var(--wk${w.week})` }}
+                      aria-hidden="true"
+                    />
+                    Седмица {w.week} · {w.label}
+                    <b className="font-semibold text-ink tabular-nums">{w.count}</b>
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* Списъкът */}
+        <section className="rounded-card border border-line bg-surface shadow-card overflow-hidden">
+          {loading ? (
+            <p className="p-6 text-sm text-muted">Зареждане…</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] border-collapse tabular-nums">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className="px-5 py-3.5 text-left text-xs font-medium text-muted">Задача</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-medium text-muted">Приели</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-medium text-muted">Линк</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-medium text-muted">Записване</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assignments.map(a => {
+                    const week = WEEK[a.slug] ?? 1;
+                    const n = counts ? counts[a.slug] || 0 : null;
+                    return (
+                      <tr key={a.slug} className="border-b border-line last:border-b-0">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-box text-sm font-bold"
+                              style={{ background: `var(--wk${week}-soft)`, color: `var(--wk${week})` }}
+                              title={`Седмица ${week} · ${WEEK_LABEL[week]}`}
+                            >
+                              {week}
+                            </span>
+                            <span>
+                              <span className="block text-sm font-semibold leading-tight">{a.title}</span>
+                              <span className="block font-mono text-xs text-muted">{a.slug}</span>
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-3.5">
+                          {n === null ? (
+                            <span className="text-sm text-muted">—</span>
+                          ) : (
+                            <div className="flex items-center gap-2.5">
+                              <b className="w-6 text-sm font-bold">{n}</b>
+                              <span className="h-1.5 w-20 overflow-hidden rounded-pill bg-sunken">
+                                <i
+                                  className="block h-full rounded-pill"
+                                  style={{ width: `${(n / peak) * 100}%`, background: `var(--wk${week})` }}
+                                />
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={() => copy(a.slug)}
+                            className="rounded-chip border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+                          >
+                            {copied === a.slug ? '✓ Копирано' : 'Копирай'}
+                          </button>
+                        </td>
+
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={() => toggle(a.slug, !a.enabled)}
+                            disabled={toggling === a.slug}
+                            className="rounded-pill px-3 py-1 text-xs font-bold transition-opacity disabled:opacity-40"
+                            style={
+                              a.enabled
+                                ? { background: 'var(--ok-soft)', color: 'var(--ok)' }
+                                : { background: 'var(--off-soft)', color: 'var(--off)' }
+                            }
+                          >
+                            {a.enabled ? 'Отворено' : 'Затворено'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
         {counts === null && !loading && (
-          <p className="mt-4 text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Броят приели се показва, след като заредиш таблото поне веднъж.
           </p>
         )}

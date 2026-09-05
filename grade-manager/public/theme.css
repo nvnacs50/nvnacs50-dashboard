@@ -1,0 +1,68 @@
+/* Общ визуален език за целия проект.
+ *
+ * Чете се от два различни стека и това е нарочно: учителското табло е React с
+ * Tailwind, студентските страници са чист HTML. Единственият начин двете да не
+ * се разминат е цветовете, радиусите и сенките да живеят на едно място.
+ *
+ *   HTML страници:  <link rel="stylesheet" href="theme.css">
+ *   React:          @import в globals.css, изложено като Tailwind класове
+ *
+ * Формите идват от TailGrids File Manager — големи радиуси, косъм граници,
+ * почти никаква сянка. Дълбочината се прави с контраст, не със сенки.
+ */
+
+:root {
+  /* --- Основа --- */
+  --ground: #F7F8FA;
+  --surface: #FFFFFF;
+  --sunken: #F2F4F7;
+  --line: #E6E8EC;
+  --line-strong: #D5D9E0;
+
+  /* --- Текст --- */
+  --ink: #101828;
+  --ink-soft: #475467;
+  --muted: #667085;
+
+  /* --- Действие ---
+   * Синьото се появява само върху главното действие. Навсякъде другаде е сиво. */
+  --primary: #3C50E0;
+  --primary-hover: #3141C4;
+  --primary-soft: #EEF0FD;
+  --on-primary: #FFFFFF;
+
+  /* --- Състояния ---
+   * Отделни от акцента: зеленото значи „работи", не „важно". */
+  --ok: #0E9B4D;
+  --ok-soft: #E6F6EC;
+  --warn: #B87500;
+  --warn-soft: #FDF3E3;
+  --danger: #C92A2A;
+  --danger-soft: #FDECEC;
+  --off: #667085;
+  --off-soft: #EFF1F4;
+
+  /* --- Седмици от CS50 ---
+   * Цветът на всяка задача не е украса: показва в коя седмица от курса е.
+   * 1 функции · 2 масиви · 3 алгоритми · 4 памет · 5 структури от данни */
+  --wk1: #4F7EF0;  --wk1-soft: #EAF0FE;
+  --wk2: #8258E8;  --wk2-soft: #F1EBFD;
+  --wk3: #0D9A9A;  --wk3-soft: #E1F5F5;
+  --wk4: #D98324;  --wk4-soft: #FCF0E1;
+  --wk5: #DB4E7C;  --wk5-soft: #FCE9EF;
+
+  /* --- Форма --- */
+  --r-card: 14px;
+  --r-box: 10px;
+  --r-chip: 8px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-lift: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+
+  /* --- Шрифт ---
+   * Manrope е със заоблени букви и върви с радиусите.
+   * Имената на repo-та са код и се набират като код. */
+  --font-ui: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+}

@@ -1,3 +1,22 @@
+/* Общият визуален език живее в public/theme.css, за да могат и чистите HTML
+ * страници на студента да го четат. Тук го внасяме, за да го изложи Tailwind. */
+@import '../../public/theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* next/font дава хеширани имена на семействата; закачаме ги за същите
+     * променливи, които theme.css дефинира за HTML страниците. */
+    --font-ui: var(--font-ui-next), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: var(--font-mono-next), ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+  }
+}
