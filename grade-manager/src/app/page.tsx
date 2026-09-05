@@ -155,6 +155,10 @@ export default function TeacherDashboard() {
   };
 
   // Calculate statistics
+  const avgProgress = students.length
+    ? Math.round(students.reduce((sum, s) => sum + s.progressPercentage, 0) / students.length)
+    : 0;
+
   const stats = {
     total: students.length,
     passed: students.filter((s) => s.status === 'passed').length,
@@ -165,41 +169,33 @@ export default function TeacherDashboard() {
   // Render login screen if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-          <div className="text-center">
-            <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg mb-4">
-              <span className="text-3xl">📊</span>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">GitHub Classroom Dashboard</h2>
-            <p className="text-gray-600 mb-6">За преподаватели</p>
-            <p className="text-sm text-gray-500">Моля, влезте отново</p>
-            <button
-              onClick={handleLogout}
-              className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
-            >
-              Вход
-            </button>
-          </div>
+      <div className="min-h-screen bg-ground flex items-center justify-center p-4 font-ui">
+        <div className="bg-surface rounded-card border border-line shadow-lift p-8 max-w-sm w-full text-center">
+          <h2 className="text-xl font-bold text-ink">Табло на курса</h2>
+          <p className="mt-1 text-sm text-muted font-mono">nvnacs50 · CS50</p>
+          <p className="mt-6 text-sm text-ink-soft">
+            Влизането е изтекло. Влез отново, за да видиш студентите.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="mt-5 w-full rounded-box bg-primary px-6 py-3 font-bold text-on-primary transition-colors hover:bg-primary-hover"
+          >
+            Влез с GitHub
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-ground font-ui text-ink">
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <nav className="bg-surface border-b border-line">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-xl">📊</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">GitHub Classroom</h1>
-                <p className="text-xs text-gray-500">Teacher Dashboard</p>
-              </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">Табло на курса</h1>
+              <p className="text-xs text-muted font-mono">nvnacs50 · CS50</p>
             </div>
             <div className="flex items-center gap-4">
               {user && (
@@ -207,14 +203,14 @@ export default function TeacherDashboard() {
                   <img
                     src={user.avatar_url}
                     alt={user.login}
-                    className="h-8 w-8 rounded-full ring-2 ring-blue-500"
+                    className="h-8 w-8 rounded-pill ring-1 ring-line"
                   />
-                  <span className="text-sm font-medium text-gray-700">{user.login}</span>
+                  <span className="text-sm font-semibold text-ink-soft">{user.login}</span>
                 </div>
               )}
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="inline-flex items-center rounded-box border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-line-strong"
               >
                 <svg className="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -235,26 +231,22 @@ export default function TeacherDashboard() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* View Mode Toggle */}
         <div className="mb-6 flex items-center justify-between">
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+          <div className="inline-flex rounded-box border border-line bg-surface p-1">
             <button
               onClick={() => setViewMode('github')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'github'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+              className={`rounded-chip px-4 py-1.5 text-sm font-semibold transition-colors ${
+                viewMode === 'github' ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink'
               }`}
             >
-              🔗 GitHub API
+              От GitHub
             </button>
             <button
               onClick={() => setViewMode('csv')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'csv'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+              className={`rounded-chip px-4 py-1.5 text-sm font-semibold transition-colors ${
+                viewMode === 'csv' ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink'
               }`}
             >
-              📄 CSV Upload
+              От файл
             </button>
           </div>
         </div>
@@ -276,7 +268,7 @@ export default function TeacherDashboard() {
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-muted"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -293,8 +285,8 @@ export default function TeacherDashboard() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search students..."
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Търси по име или username…"
+                    className="block w-full rounded-box border border-line bg-surface py-2 pl-10 pr-3 text-sm placeholder-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -303,23 +295,23 @@ export default function TeacherDashboard() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="rounded-box border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft focus:border-primary focus:outline-none"
               >
-                <option value="all">All Students</option>
-                <option value="passed">Passed Only</option>
-                <option value="in_progress">In Progress</option>
-                <option value="failed">Failed</option>
+                <option value="all">Всички студенти</option>
+                <option value="passed">Само взелите</option>
+                <option value="in_progress">В процес</option>
+                <option value="failed">Изостават</option>
               </select>
 
               {/* Sort */}
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="rounded-box border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft focus:border-primary focus:outline-none"
               >
-                <option value="name">Sort by Name</option>
-                <option value="progress">Sort by Progress</option>
-                <option value="lastActive">Sort by Last Active</option>
+                <option value="name">Подредба по име</option>
+                <option value="progress">Подредба по напредък</option>
+                <option value="lastActive">Подредба по активност</option>
               </select>
 
               {/* Sync Button - removed, now in CacheStatusBanner */}
@@ -327,37 +319,24 @@ export default function TeacherDashboard() {
               {/* Assignment Links Button */}
               <a
                 href="/nvnacs50-dashboard/teacher/assignments"
-                className="inline-flex items-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="inline-flex items-center rounded-box bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover"
               >
-                🔗 Линкове за задачи
+                Линкове за задачи
               </a>
 
               {/* Quiz Results Button */}
               <a
                 href="/nvnacs50-dashboard/teacher/quiz-results"
-                className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                className="inline-flex items-center rounded-box border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-line-strong"
               >
-                <svg
-                  className="-ml-1 mr-2 h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                📝 Quiz Резултати
+                Quiz резултати
               </a>
 
               {/* Export Button */}
               {students.length > 0 && (
                 <button
                   onClick={() => setShowExportModal(true)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  className="inline-flex items-center rounded-box border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-line-strong"
                 >
                   <svg
                     className="-ml-1 mr-2 h-4 w-4"
@@ -372,96 +351,63 @@ export default function TeacherDashboard() {
                       d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  Export
+                  Изтегли
                 </button>
               )}
             </div>
 
             {/* Statistics Cards */}
             {students.length > 0 && (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                          <span className="text-2xl">👥</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Total Students</dt>
-                          <dd className="text-3xl font-bold text-gray-900">{stats.total}</dd>
-                        </dl>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="rounded-card border border-line bg-surface p-5 shadow-card">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">Студенти</p>
+                  <p className="mt-1 text-3xl font-bold tabular-nums">{stats.total}</p>
+                  <div className="mt-3 h-1 overflow-hidden rounded-pill bg-sunken">
+                    <div
+                      className="h-full rounded-pill bg-progress"
+                      style={{ width: `${avgProgress}%` }}
+                    />
                   </div>
+                  <p className="mt-2 text-xs text-muted">
+                    среден напредък <b className="font-semibold text-ink tabular-nums">{avgProgress}%</b>
+                  </p>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                          <span className="text-2xl">✅</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Passed</dt>
-                          <dd className="text-3xl font-bold text-green-600">{stats.passed}</dd>
-                        </dl>
-                      </div>
+                {[
+                  { label: 'Взели', value: stats.passed, color: 'var(--ok)' },
+                  { label: 'В процес', value: stats.inProgress, color: 'var(--warn)' },
+                  { label: 'Изостават', value: stats.failed, color: 'var(--danger)' },
+                ].map((tile) => (
+                  <div key={tile.label} className="rounded-card border border-line bg-surface p-5 shadow-card">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted">{tile.label}</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums" style={{ color: tile.color }}>
+                      {tile.value}
+                    </p>
+                    <div className="mt-3 h-1 overflow-hidden rounded-pill bg-sunken">
+                      <div
+                        className="h-full rounded-pill"
+                        style={{
+                          width: `${stats.total ? (tile.value / stats.total) * 100 : 0}%`,
+                          background: tile.color,
+                        }}
+                      />
                     </div>
+                    <p className="mt-2 text-xs text-muted tabular-nums">
+                      {stats.total ? Math.round((tile.value / stats.total) * 100) : 0}% от групата
+                    </p>
                   </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                          <span className="text-2xl">⏳</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
-                          <dd className="text-3xl font-bold text-yellow-600">{stats.inProgress}</dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-12 w-12 bg-red-100 rounded-xl flex items-center justify-center">
-                          <span className="text-2xl">❌</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Failed</dt>
-                          <dd className="text-3xl font-bold text-red-600">{stats.failed}</dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             )}
 
             {/* Loading State */}
             {loading && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                <p className="text-gray-600 font-medium">Loading students from GitHub...</p>
+              <div className="rounded-card border border-line bg-surface p-12 text-center shadow-card">
+                <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-pill border-2 border-line border-t-primary"></div>
+                <p className="font-semibold text-ink-soft">Зареждаме студентите от GitHub…</p>
                 {loadingProgress.total > 0 && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    Processing {loadingProgress.current} of {loadingProgress.total} students
+                  <p className="mt-2 text-sm text-muted tabular-nums">
+                    {loadingProgress.current} от {loadingProgress.total}
                   </p>
                 )}
               </div>
@@ -469,26 +415,8 @@ export default function TeacherDashboard() {
 
             {/* Error State */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-red-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">Error</h3>
-                    <div className="mt-2 text-sm text-red-700">{error}</div>
-                  </div>
-                </div>
+              <div className="mb-6 rounded-box border border-danger-soft bg-danger-soft p-4 text-sm text-danger">
+                {error}
               </div>
             )}
 
@@ -505,9 +433,9 @@ export default function TeacherDashboard() {
 
             {/* Empty State */}
             {!loading && students.length === 0 && !error && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+              <div className="rounded-card border border-line bg-surface p-12 text-center shadow-card">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-muted"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -519,19 +447,17 @@ export default function TeacherDashboard() {
                     d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                   />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No students loaded</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Click "Sync GitHub" to load students from the organization
+                <h3 className="mt-3 text-sm font-semibold text-ink">Още няма заредени студенти</h3>
+                <p className="mt-1 text-sm text-muted">
+                  Натисни „Синхронизирай“, за да ги изтеглиш от организацията.
                 </p>
               </div>
             )}
           </>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <h3 className="text-lg font-medium text-gray-900">CSV Mode</h3>
-            <p className="text-gray-500 mt-2">
-              CSV upload functionality will be preserved from the original dashboard
-            </p>
+          <div className="rounded-card border border-line bg-surface p-12 text-center shadow-card">
+            <h3 className="text-lg font-semibold text-ink">Качване от файл</h3>
+            <p className="mt-2 text-sm text-muted">Още не е готово.</p>
           </div>
         )}
       </main>
@@ -550,17 +476,17 @@ export default function TeacherDashboard() {
       {showExportModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div
-            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            className="fixed inset-0 bg-ink/40 transition-opacity"
             onClick={() => setShowExportModal(false)}
           />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Export Data</h3>
+            <div className="relative w-full max-w-md rounded-card border border-line bg-surface p-6 shadow-lift">
+              <h3 className="mb-4 text-lg font-bold text-ink">Изтегляне на данните</h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Format:
+                  <label className="mb-2 block text-sm font-semibold text-ink-soft">
+                    Формат
                   </label>
                   <div className="space-y-2">
                     <label className="flex items-center">
@@ -569,9 +495,9 @@ export default function TeacherDashboard() {
                         value="excel"
                         checked={exportFormat === 'excel'}
                         onChange={(e) => setExportFormat(e.target.value as any)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        className="h-4 w-4 border-line text-primary focus:ring-primary"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Excel (.xlsx) - Recommended</span>
+                      <span className="ml-2 text-sm text-ink-soft">Excel (.xlsx) — препоръчано</span>
                     </label>
                     <label className="flex items-center">
                       <input
@@ -579,17 +505,17 @@ export default function TeacherDashboard() {
                         value="csv"
                         checked={exportFormat === 'csv'}
                         onChange={(e) => setExportFormat(e.target.value as any)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        className="h-4 w-4 border-line text-primary focus:ring-primary"
                       />
-                      <span className="ml-2 text-sm text-gray-700">CSV (.csv)</span>
+                      <span className="ml-2 text-sm text-ink-soft">CSV (.csv)</span>
                     </label>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm text-blue-800">
+                <div className="rounded-box border border-line bg-sunken p-3">
+                  <p className="text-sm text-ink-soft">
                     {filterStatus !== 'all' || searchQuery
-                      ? `Exporting filtered students (${students.filter((s) => {
+                      ? `Само филтрираните: ${students.filter((s) => {
                           if (searchQuery) {
                             const query = searchQuery.toLowerCase();
                             if (
@@ -600,8 +526,8 @@ export default function TeacherDashboard() {
                             }
                           }
                           return filterStatus === 'all' || s.status === filterStatus;
-                        }).length} students)`
-                      : `Exporting all students (${students.length} students)`}
+                        }).length} студенти`
+                      : `Всички ${students.length} студенти`}
                   </p>
                 </div>
               </div>
@@ -609,15 +535,15 @@ export default function TeacherDashboard() {
               <div className="mt-6 flex gap-3 justify-end">
                 <button
                   onClick={() => setShowExportModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="rounded-box border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-line-strong"
                 >
-                  Cancel
+                  Откажи
                 </button>
                 <button
                   onClick={handleExport}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  className="rounded-box bg-primary px-4 py-2 text-sm font-bold text-on-primary transition-colors hover:bg-primary-hover"
                 >
-                  Download Export
+                  Изтегли
                 </button>
               </div>
             </div>

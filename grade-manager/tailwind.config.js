@@ -23,6 +23,8 @@ module.exports = {
         'primary-hover': 'var(--primary-hover)',
         'primary-soft': 'var(--primary-soft)',
         'on-primary': 'var(--on-primary)',
+        progress: 'var(--progress)',
+        'progress-soft': 'var(--progress-soft)',
         ok: 'var(--ok)',
         'ok-soft': 'var(--ok-soft)',
         warn: 'var(--warn)',

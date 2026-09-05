@@ -68,30 +68,19 @@ export default function StudentsTable({
   });
 
   const getStatusBadge = (status: Student['status']) => {
+    const pill = 'inline-flex items-center rounded-pill px-2.5 py-1 text-xs font-bold';
     switch (status) {
       case 'passed':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            ✅ Passed
-          </span>
-        );
+        return <span className={`${pill} bg-ok-soft text-ok`}>Взел</span>;
       case 'in_progress':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            ⏳ In Progress
-          </span>
-        );
+        return <span className={`${pill} bg-warn-soft text-warn`}>В процес</span>;
       case 'failed':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            ❌ Failed
-          </span>
-        );
+        return <span className={`${pill} bg-danger-soft text-danger`}>Изостава</span>;
     }
   };
 
   const formatLastActive = (dateString?: string) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return 'никога';
 
     const date = new Date(dateString);
     const now = new Date();
@@ -100,9 +89,9 @@ export default function StudentsTable({
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 60) return `преди ${diffMins} мин`;
+    if (diffHours < 24) return `преди ${diffHours} ч`;
+    if (diffDays < 7) return `преди ${diffDays} дни`;
     return date.toLocaleDateString('bg-BG', { month: 'short', day: 'numeric' });
   };
 
@@ -110,7 +99,7 @@ export default function StudentsTable({
     return (
       <div className="text-center py-12">
         <svg
-          className="mx-auto h-12 w-12 text-gray-400"
+          className="mx-auto h-12 w-12 text-muted"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -122,8 +111,8 @@ export default function StudentsTable({
             d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
           />
         </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Няма студенти</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <h3 className="mt-2 text-sm font-semibold text-ink">Няма студенти</h3>
+        <p className="mt-1 text-sm text-muted">
           {searchQuery || filterStatus !== 'all'
             ? 'Няма студенти, които отговарят на филтрите'
             : 'Няма налични данни за студенти'}
@@ -133,10 +122,10 @@ export default function StudentsTable({
   }
 
   return (
-    <div className="overflow-hidden bg-white shadow-sm rounded-lg border border-gray-200">
+    <div className="overflow-hidden bg-surface shadow-card rounded-card border border-line">
       {/* Table Header */}
-      <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-        <div className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+      <div className="px-6 py-3.5 border-b border-line">
+        <div className="grid grid-cols-12 gap-4 text-xs font-medium text-muted">
           <div className="col-span-3">Име</div>
           <div className="col-span-3">Прогрес</div>
           <div className="col-span-2">Последна активност</div>
@@ -164,7 +153,7 @@ export default function StudentsTable({
             return (
               <div
                 key={student.id}
-                className="absolute top-0 left-0 w-full px-6 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="absolute top-0 left-0 w-full px-6 py-4 border-b border-line last:border-b-0 hover:bg-sunken transition-colors cursor-pointer"
                 style={{
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
@@ -177,13 +166,13 @@ export default function StudentsTable({
                     <img
                       src={student.avatarUrl}
                       alt={student.name}
-                      className="h-8 w-8 rounded-full ring-2 ring-gray-200"
+                      className="h-9 w-9 rounded-pill ring-1 ring-line"
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-semibold text-ink truncate">
                         {student.name}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-muted truncate font-mono">
                         @{student.username}
                       </p>
                     </div>
@@ -192,30 +181,24 @@ export default function StudentsTable({
                   {/* Progress column */}
                   <div className="col-span-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div className="flex-1 bg-sunken rounded-pill h-1.5 overflow-hidden">
                         <div
-                          className={`h-2 rounded-full transition-all ${
-                            student.progressPercentage === 100
-                              ? 'bg-green-600'
-                              : student.progressPercentage >= 50
-                              ? 'bg-blue-600'
-                              : 'bg-yellow-600'
-                          }`}
+                          className="h-full rounded-pill bg-progress transition-all"
                           style={{ width: `${student.progressPercentage}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-gray-700 min-w-[3rem] text-right">
+                      <span className="text-sm font-bold text-ink min-w-[3rem] text-right tabular-nums">
                         {student.progressPercentage}%
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted mt-1 tabular-nums">
                       {student.completedCount}/{student.totalAssignments} завършени
                     </p>
                   </div>
 
                   {/* Last Active column */}
                   <div className="col-span-2">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-ink-soft">
                       {formatLastActive(student.lastActive)}
                     </p>
                   </div>
@@ -230,7 +213,7 @@ export default function StudentsTable({
                         e.stopPropagation();
                         onStudentClick(student);
                       }}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="inline-flex items-center rounded-chip border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
                     >
                       <svg
                         className="h-4 w-4 mr-1"
@@ -262,10 +245,10 @@ export default function StudentsTable({
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
-        <p className="text-sm text-gray-700">
-          Показани <span className="font-medium">{processedStudents.length}</span> от{' '}
-          <span className="font-medium">{students.length}</span> студенти
+      <div className="px-6 py-3.5 border-t border-line">
+        <p className="text-sm text-muted">
+          Показани <span className="font-semibold text-ink tabular-nums">{processedStudents.length}</span> от{' '}
+          <span className="font-semibold text-ink tabular-nums">{students.length}</span> студенти
         </p>
       </div>
     </div>
