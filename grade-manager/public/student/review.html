@@ -5,29 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Преглед на Резултати - CS50 Тест</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Стойностите идват от theme.css — тук само се излагат като класове,
+    // за да е един източникът за целия проект.
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ground: 'var(--ground)', surface: 'var(--surface)', sunken: 'var(--sunken)',
+            line: 'var(--line)', 'line-strong': 'var(--line-strong)',
+            ink: 'var(--ink)', 'ink-soft': 'var(--ink-soft)', muted: 'var(--muted)',
+            primary: 'var(--primary)', 'primary-hover': 'var(--primary-hover)',
+            'primary-soft': 'var(--primary-soft)', 'on-primary': 'var(--on-primary)',
+            progress: 'var(--progress)',
+            ok: 'var(--ok)', 'ok-soft': 'var(--ok-soft)',
+            warn: 'var(--warn)', 'warn-soft': 'var(--warn-soft)',
+            danger: 'var(--danger)', 'danger-soft': 'var(--danger-soft)',
+            off: 'var(--off)', 'off-soft': 'var(--off-soft)',
+          },
+          borderRadius: {
+            card: 'var(--r-card)', box: 'var(--r-box)',
+            chip: 'var(--r-chip)', pill: 'var(--r-pill)',
+          },
+          boxShadow: { card: 'var(--shadow-card)', lift: 'var(--shadow-lift)' },
+          fontFamily: { ui: ['var(--font-ui)'], mono: ['var(--font-mono)'] },
+        }
+      }
+    }
+  </script>
   <style>
     .answer-badge {
       display: inline-block;
       padding: 8px 16px;
-      border-radius: 20px;
+      border-radius: var(--r-pill);
       font-weight: 500;
       font-size: 15px;
       margin-top: 8px;
     }
 
     .answer-badge.correct {
-      background-color: #10b981;
+      background-color: var(--ok);
       color: white;
     }
 
     .answer-badge.incorrect {
-      background-color: #ef4444;
+      background-color: var(--danger);
       color: white;
     }
 
     .question-item {
       background: white;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       padding: 20px;
       margin-bottom: 16px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -35,26 +63,26 @@
     }
 
     .question-item.correct {
-      border-left-color: #10b981;
+      border-left-color: var(--ok);
     }
 
     .question-item.incorrect {
-      border-left-color: #ef4444;
+      border-left-color: var(--danger);
     }
 
     .question-text {
       font-size: 16px;
-      color: #1f2937;
+      color: var(--ink);
       margin-bottom: 12px;
       line-height: 1.6;
     }
 
     .question-text pre {
-      background: #2d3748;
-      color: #e2e8f0;
+      background: var(--ink);
+      color: var(--line);
       padding: 16px;
-      border-radius: 8px;
-      font-family: 'Courier New', Consolas, Monaco, monospace;
+      border-radius: var(--r-box);
+      font-family: var(--font-mono);
       font-size: 14px;
       overflow-x: auto;
       margin: 12px 0;
@@ -65,9 +93,9 @@
     }
 
     .score-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--ground);
       color: white;
-      border-radius: 16px;
+      border-radius: var(--r-card);
       padding: 32px;
       text-align: center;
       margin-bottom: 32px;
@@ -90,7 +118,7 @@
     .stat-item {
       background: rgba(255, 255, 255, 0.2);
       padding: 16px;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       text-align: center;
     }
 
@@ -105,13 +133,15 @@
       font-weight: bold;
     }
   </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="../theme.css">
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+<body class="bg-ground min-h-screen">
   <div class="container mx-auto px-4 py-8 max-w-4xl">
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-gray-900 mb-2">📊 Преглед на Резултати</h1>
-      <p class="text-gray-600">CS50 Тест - Детайлен Преглед</p>
+      <h1 class="text-4xl font-bold text-ink mb-2">📊 Преглед на Резултати</h1>
+      <p class="text-ink-soft">CS50 Тест - Детайлен Преглед</p>
     </div>
 
     <!-- Score Card -->
@@ -137,12 +167,12 @@
     </div>
 
     <!-- Performance Message -->
-    <div id="performance-message" class="mb-8 p-6 rounded-xl text-center text-lg font-medium"></div>
+    <div id="performance-message" class="mb-8 p-6 rounded-card text-center text-lg font-medium"></div>
 
     <!-- Questions Review Section -->
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-gray-900 mb-4">📝 Детайлен Преглед на Отговорите</h2>
-      <p class="text-gray-600 mb-6">
+      <h2 class="text-2xl font-bold text-ink mb-4">📝 Детайлен Преглед на Отговорите</h2>
+      <p class="text-ink-soft mb-6">
         Прегледайте вашите отговори. Зелените означават верни отговори, червените - грешни.
       </p>
 
@@ -154,13 +184,13 @@
     <!-- Actions -->
     <div class="flex gap-4 justify-center mb-8">
       <a href="dashboard.html"
-         class="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
+         class="px-8 py-3 bg-primary text-white rounded-card font-medium shadow-lg hover:shadow-lift transform hover:-translate-y-0.5 transition-all">
         📚 Към Dashboard
       </a>
     </div>
 
     <!-- Info Message -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center text-sm text-blue-800">
+    <div class="bg-primary-soft border border-line rounded-card p-4 text-center text-sm text-primary">
       <p>ℹ️ Този преглед е временен и ще изчезне когато затворите браузъра.</p>
     </div>
   </div>

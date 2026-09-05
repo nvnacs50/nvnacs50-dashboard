@@ -1,41 +1,59 @@
 <!DOCTYPE html>
-<html lang="bg" class="h-full bg-gray-50">
+<html lang="bg" class="h-full bg-sunken">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Моят Dashboard - GitHub Classroom</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // Стойностите идват от theme.css — тук само се излагат като класове,
+    // за да е един източникът за целия проект.
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            primary: '#3b82f6',
-            secondary: '#8b5cf6',
-          }
+            ground: 'var(--ground)', surface: 'var(--surface)', sunken: 'var(--sunken)',
+            line: 'var(--line)', 'line-strong': 'var(--line-strong)',
+            ink: 'var(--ink)', 'ink-soft': 'var(--ink-soft)', muted: 'var(--muted)',
+            primary: 'var(--primary)', 'primary-hover': 'var(--primary-hover)',
+            'primary-soft': 'var(--primary-soft)', 'on-primary': 'var(--on-primary)',
+            progress: 'var(--progress)',
+            ok: 'var(--ok)', 'ok-soft': 'var(--ok-soft)',
+            warn: 'var(--warn)', 'warn-soft': 'var(--warn-soft)',
+            danger: 'var(--danger)', 'danger-soft': 'var(--danger-soft)',
+            off: 'var(--off)', 'off-soft': 'var(--off-soft)',
+          },
+          borderRadius: {
+            card: 'var(--r-card)', box: 'var(--r-box)',
+            chip: 'var(--r-chip)', pill: 'var(--r-pill)',
+          },
+          boxShadow: { card: 'var(--shadow-card)', lift: 'var(--shadow-lift)' },
+          fontFamily: { ui: ['var(--font-ui)'], mono: ['var(--font-mono)'] },
         }
       }
     }
   </script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="../theme.css">
 </head>
 <body class="h-full">
   <div class="min-h-full">
     <!-- Navigation -->
-    <nav class="bg-white border-b border-gray-200">
+    <nav class="bg-surface border-b border-line">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between items-center">
           <div class="flex items-center gap-3">
-            <div class="h-10 w-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+            <div class="h-10 w-10 bg-primary rounded-card flex items-center justify-center shadow-card">
               <span class="text-xl">📚</span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-gray-900">GitHub Classroom</h1>
-              <p class="text-xs text-gray-500">Student Dashboard</p>
+              <h1 class="text-xl font-bold text-ink">GitHub Classroom</h1>
+              <p class="text-xs text-muted">Student Dashboard</p>
             </div>
           </div>
           <div class="flex items-center gap-4">
             <a href="quiz.html"
-               class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all">
+               class="inline-flex items-center px-4 py-2 border border-transparent shadow-card text-sm font-medium rounded-box text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all">
               <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
@@ -43,7 +61,7 @@
             </a>
             <div id="user-info" class="flex items-center gap-3"></div>
             <button id="logout"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    class="inline-flex items-center px-4 py-2 border border-line shadow-card text-sm font-medium rounded-box text-ink-soft bg-surface hover:bg-sunken focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
               <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
               </svg>
@@ -57,8 +75,8 @@
     <!-- Loading State -->
     <div id="loading" class="flex items-center justify-center min-h-[calc(100vh-4rem)]">
       <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-4 text-gray-600 font-medium">Зареждане на данните...</p>
+        <div class="inline-block animate-spin rounded-pill h-12 w-12 border-b-2 border-primary"></div>
+        <p class="mt-4 text-ink-soft font-medium">Зареждане на данните...</p>
       </div>
     </div>
 
@@ -68,26 +86,26 @@
         <!-- Stats Cards -->
         <div id="summary" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           <!-- Accepted Assignments Card with Modal -->
-          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="openAcceptedAssignmentsModal()">
+          <div class="bg-surface overflow-hidden shadow-card rounded-card border border-line hover:shadow-card transition-shadow cursor-pointer group" onclick="openAcceptedAssignmentsModal()">
             <div class="p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="h-12 w-12 bg-primary-soft rounded-card flex items-center justify-center group-hover:bg-primary-soft transition-colors">
+                    <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                   </div>
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate flex items-center gap-1">
+                    <dt class="text-sm font-medium text-muted truncate flex items-center gap-1">
                       Приети задачи
-                      <svg class="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="h-4 w-4 text-muted group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                     </dt>
                     <dd class="flex items-baseline">
-                      <div id="total-assignments" class="text-3xl font-bold text-gray-900">0</div>
+                      <div id="total-assignments" class="text-3xl font-bold text-ink">0</div>
                     </dd>
                   </dl>
                 </div>
@@ -96,26 +114,26 @@
           </div>
 
           <!-- Completed Assignments Card -->
-          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="openCompletedAssignmentsModal()">
+          <div class="bg-surface overflow-hidden shadow-card rounded-card border border-line hover:shadow-card transition-shadow cursor-pointer group" onclick="openCompletedAssignmentsModal()">
             <div class="p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="h-12 w-12 bg-ok-soft rounded-card flex items-center justify-center group-hover:bg-ok-soft transition-colors">
+                    <svg class="h-6 w-6 text-ok" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                   </div>
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate flex items-center gap-1">
+                    <dt class="text-sm font-medium text-muted truncate flex items-center gap-1">
                       Завършени
-                      <svg class="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="h-4 w-4 text-muted group-hover:text-ok transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                     </dt>
                     <dd class="flex items-baseline">
-                      <div id="completed-assignments" class="text-3xl font-bold text-green-600">0</div>
+                      <div id="completed-assignments" class="text-3xl font-bold text-ok">0</div>
                     </dd>
                   </dl>
                 </div>
@@ -123,21 +141,21 @@
             </div>
           </div>
 
-          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+          <div class="bg-surface overflow-hidden shadow-card rounded-card border border-line hover:shadow-card transition-shadow">
             <div class="p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="h-12 w-12 bg-warn-soft rounded-card flex items-center justify-center">
+                    <svg class="h-6 w-6 text-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                   </div>
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">В процес</dt>
+                    <dt class="text-sm font-medium text-muted truncate">В процес</dt>
                     <dd class="flex items-baseline">
-                      <div id="pending-assignments" class="text-3xl font-bold text-yellow-600">0</div>
+                      <div id="pending-assignments" class="text-3xl font-bold text-warn">0</div>
                     </dd>
                   </dl>
                 </div>
@@ -145,21 +163,21 @@
             </div>
           </div>
 
-          <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+          <div class="bg-surface overflow-hidden shadow-card rounded-card border border-line hover:shadow-card transition-shadow">
             <div class="p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="h-12 w-12 bg-red-100 rounded-xl flex items-center justify-center">
-                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="h-12 w-12 bg-danger-soft rounded-card flex items-center justify-center">
+                    <svg class="h-6 w-6 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                   </div>
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Неуспешни</dt>
+                    <dt class="text-sm font-medium text-muted truncate">Неуспешни</dt>
                     <dd class="flex items-baseline">
-                      <div id="failed-assignments" class="text-3xl font-bold text-red-600">0</div>
+                      <div id="failed-assignments" class="text-3xl font-bold text-danger">0</div>
                     </dd>
                   </dl>
                 </div>
@@ -169,15 +187,15 @@
         </div>
 
         <!-- Assignments Section -->
-        <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">📝 Мои задачи</h2>
+        <div class="bg-surface shadow-card rounded-card border border-line p-6">
+          <h2 class="text-2xl font-bold text-ink mb-6">📝 Мои задачи</h2>
           <div id="assignments-list" class="grid grid-cols-1 gap-6 lg:grid-cols-2"></div>
           <div id="no-assignments" class="hidden text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="mx-auto h-12 w-12 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Няма задачи</h3>
-            <p class="mt-1 text-sm text-gray-500">Все още нямаш задачи от GitHub Classroom.</p>
+            <h3 class="mt-2 text-sm font-medium text-ink">Няма задачи</h3>
+            <p class="mt-1 text-sm text-muted">Все още нямаш задачи от GitHub Classroom.</p>
           </div>
         </div>
       </div>
@@ -225,8 +243,8 @@
       const userInfoEl = document.getElementById('user-info');
       if (userInfoEl && currentUser) {
         userInfoEl.innerHTML = `
-          <img src="${currentUser.avatar_url}" alt="${currentUser.login}" class="h-8 w-8 rounded-full ring-2 ring-blue-500">
-          <span class="text-sm font-medium text-gray-700">${currentUser.login}</span>
+          <img src="${currentUser.avatar_url}" alt="${currentUser.login}" class="h-8 w-8 rounded-pill ring-2 ring-primary">
+          <span class="text-sm font-medium text-ink-soft">${currentUser.login}</span>
         `;
       }
     }
@@ -384,26 +402,26 @@
         : '';
 
       return `
-        <div class="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow bg-white">
+        <div class="border border-line rounded-card p-6 hover:shadow-card transition-shadow bg-surface">
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1 min-w-0">
-              <h3 class="text-lg font-semibold text-gray-900 truncate">${escapeHtml(assignment.name)}</h3>
-              ${assignment.description ? `<p class="mt-1 text-sm text-gray-500 line-clamp-2">${escapeHtml(assignment.description)}</p>` : ''}
+              <h3 class="text-lg font-semibold text-ink truncate">${escapeHtml(assignment.name)}</h3>
+              ${assignment.description ? `<p class="mt-1 text-sm text-muted line-clamp-2">${escapeHtml(assignment.description)}</p>` : ''}
             </div>
-            <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusInfo.colorClass}">
+            <span class="ml-3 inline-flex items-center px-3 py-1 rounded-pill text-xs font-medium ${statusInfo.colorClass}">
               ${statusInfo.icon} ${statusInfo.text}
             </span>
           </div>
 
           <div class="space-y-2 mb-4">
-            <div class="flex items-center text-sm text-gray-600">
+            <div class="flex items-center text-sm text-ink-soft">
               <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <span>${lastCommitDate}</span>
             </div>
             ${lastCommitMessage ? `
-              <div class="flex items-start text-sm text-gray-600">
+              <div class="flex items-start text-sm text-ink-soft">
                 <svg class="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                 </svg>
@@ -416,7 +434,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <span class="font-medium">Тестове:</span>
-                <span class="ml-2 ${assignment.latestRun.conclusion === 'success' ? 'text-green-600' : 'text-red-600'}">
+                <span class="ml-2 ${assignment.latestRun.conclusion === 'success' ? 'text-ok' : 'text-danger'}">
                   ${getWorkflowStatusText(assignment.latestRun)}
                 </span>
               </div>
@@ -424,7 +442,7 @@
           </div>
 
           <a href="${assignment.html_url}" target="_blank" rel="noopener noreferrer"
-             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-box text-primary bg-primary-soft hover:bg-primary-soft transition-colors">
             Виж в GitHub
             <svg class="ml-2 -mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
@@ -436,13 +454,13 @@
 
     function getStatusInfo(status) {
       const statusMap = {
-        'success': { icon: '✅', text: 'Успешно', colorClass: 'bg-green-100 text-green-800' },
-        'failure': { icon: '❌', text: 'Неуспешно', colorClass: 'bg-red-100 text-red-800' },
-        'in_progress': { icon: '⏳', text: 'В процес', colorClass: 'bg-yellow-100 text-yellow-800' },
-        'not_started': { icon: '📝', text: 'Не е започнато', colorClass: 'bg-gray-100 text-gray-800' },
-        'no_tests': { icon: '📋', text: 'Без тестове', colorClass: 'bg-blue-100 text-blue-800' },
+        'success': { icon: '✅', text: 'Успешно', colorClass: 'bg-ok-soft text-ok' },
+        'failure': { icon: '❌', text: 'Неуспешно', colorClass: 'bg-danger-soft text-danger' },
+        'in_progress': { icon: '⏳', text: 'В процес', colorClass: 'bg-warn-soft text-warn' },
+        'not_started': { icon: '📝', text: 'Не е започнато', colorClass: 'bg-sunken text-ink' },
+        'no_tests': { icon: '📋', text: 'Без тестове', colorClass: 'bg-primary-soft text-primary' },
         'cancelled': { icon: '⚠️', text: 'Отказано', colorClass: 'bg-orange-100 text-orange-800' },
-        'unknown': { icon: '❓', text: 'Неизвестно', colorClass: 'bg-gray-100 text-gray-800' }
+        'unknown': { icon: '❓', text: 'Неизвестно', colorClass: 'bg-sunken text-ink' }
       };
       return statusMap[status] || statusMap['unknown'];
     }
@@ -480,16 +498,16 @@
       const mainContentEl = document.getElementById('main-content');
       mainContentEl.innerHTML = `
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+          <div class="bg-danger-soft border border-danger-soft rounded-card p-6">
             <div class="flex">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="h-5 w-5 text-danger" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                 </svg>
               </div>
               <div class="ml-3">
-                <h3 class="text-sm font-medium text-red-800">Грешка</h3>
-                <div class="mt-2 text-sm text-red-700">${escapeHtml(message)}</div>
+                <h3 class="text-sm font-medium text-danger">Грешка</h3>
+                <div class="mt-2 text-sm text-danger">${escapeHtml(message)}</div>
               </div>
             </div>
           </div>
@@ -592,20 +610,20 @@
 
           // Show ALL assignments
           html += `
-            <div class="flex items-start gap-3 p-3 rounded-lg ${isAccepted ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}">
+            <div class="flex items-start gap-3 p-3 rounded-box ${isAccepted ? 'bg-primary-soft border border-line' : 'bg-sunken border border-line'}">
               <div class="flex-shrink-0 mt-0.5">
                 ${isAccepted ? `
-                  <div class="h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center">
+                  <div class="h-5 w-5 bg-primary rounded-pill flex items-center justify-center">
                     <svg class="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
                 ` : `
-                  <div class="h-5 w-5 bg-gray-300 rounded-full"></div>
+                  <div class="h-5 w-5 bg-sunken rounded-pill"></div>
                 `}
               </div>
               <div class="flex-1">
-                <p class="text-sm font-medium ${isAccepted ? 'text-blue-900' : 'text-gray-900'}">${assignment.title}</p>
+                <p class="text-sm font-medium ${isAccepted ? 'text-primary' : 'text-ink'}">${assignment.title}</p>
               </div>
             </div>
           `;
@@ -616,8 +634,8 @@
 
           // Show ALL choice groups
           html += `
-            <div class="p-3 rounded-lg ${hasAccepted ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'}">
-              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">${assignment.title}</p>
+            <div class="p-3 rounded-box ${hasAccepted ? 'bg-primary-soft border border-line' : 'bg-sunken border border-line'}">
+              <p class="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-2">${assignment.title}</p>
               <div class="space-y-2 ml-3">
                 ${assignment.options.map(option => {
                   const optAccepted = userAssignments.has(option.name);
@@ -625,16 +643,16 @@
                     <div class="flex items-start gap-2">
                       <div class="flex-shrink-0 mt-0.5">
                         ${optAccepted ? `
-                          <div class="h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
+                          <div class="h-4 w-4 bg-primary rounded-pill flex items-center justify-center">
                             <svg class="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                           </div>
                         ` : `
-                          <div class="h-4 w-4 bg-gray-300 rounded-full"></div>
+                          <div class="h-4 w-4 bg-sunken rounded-pill"></div>
                         `}
                       </div>
-                      <p class="text-sm ${optAccepted ? 'text-blue-900 font-medium' : 'text-gray-700'}">${option.title}</p>
+                      <p class="text-sm ${optAccepted ? 'text-primary font-medium' : 'text-ink-soft'}">${option.title}</p>
                     </div>
                   `;
                 }).join('')}
@@ -676,20 +694,20 @@
 
           // Show ALL assignments
           html += `
-            <div class="flex items-start gap-3 p-3 rounded-lg ${isCompleted ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}">
+            <div class="flex items-start gap-3 p-3 rounded-box ${isCompleted ? 'bg-ok-soft border border-ok-soft' : 'bg-sunken border border-line'}">
               <div class="flex-shrink-0 mt-0.5">
                 ${isCompleted ? `
-                  <div class="h-5 w-5 bg-green-500 rounded-full flex items-center justify-center">
+                  <div class="h-5 w-5 bg-ok rounded-pill flex items-center justify-center">
                     <svg class="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                   </div>
                 ` : `
-                  <div class="h-5 w-5 bg-gray-300 rounded-full"></div>
+                  <div class="h-5 w-5 bg-sunken rounded-pill"></div>
                 `}
               </div>
               <div class="flex-1">
-                <p class="text-sm font-medium ${isCompleted ? 'text-green-900' : 'text-gray-900'}">${assignment.title}</p>
+                <p class="text-sm font-medium ${isCompleted ? 'text-ok' : 'text-ink'}">${assignment.title}</p>
               </div>
             </div>
           `;
@@ -700,8 +718,8 @@
 
           // Show ALL choice groups
           html += `
-            <div class="p-3 rounded-lg ${hasCompleted ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}">
-              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">${assignment.title}</p>
+            <div class="p-3 rounded-box ${hasCompleted ? 'bg-ok-soft border border-ok-soft' : 'bg-sunken border border-line'}">
+              <p class="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-2">${assignment.title}</p>
               <div class="space-y-2 ml-3">
                 ${assignment.options.map(option => {
                   const optCompleted = window.successfulAssignments && window.successfulAssignments.has(option.name);
@@ -709,16 +727,16 @@
                     <div class="flex items-start gap-2">
                       <div class="flex-shrink-0 mt-0.5">
                         ${optCompleted ? `
-                          <div class="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <div class="h-4 w-4 bg-ok rounded-pill flex items-center justify-center">
                             <svg class="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                           </div>
                         ` : `
-                          <div class="h-4 w-4 bg-gray-300 rounded-full"></div>
+                          <div class="h-4 w-4 bg-sunken rounded-pill"></div>
                         `}
                       </div>
-                      <p class="text-sm ${optCompleted ? 'text-green-900 font-medium' : 'text-gray-700'}">${option.title}</p>
+                      <p class="text-sm ${optCompleted ? 'text-ok font-medium' : 'text-ink-soft'}">${option.title}</p>
                     </div>
                   `;
                 }).join('')}
@@ -738,42 +756,42 @@
   <!-- Accepted Assignments Modal -->
   <div id="accepted-assignments-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeAcceptedAssignmentsModal()"></div>
-      <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 border-b border-gray-200">
+      <div class="fixed inset-0 bg-muted bg-opacity-75 transition-opacity" onclick="closeAcceptedAssignmentsModal()"></div>
+      <div class="inline-block align-bottom bg-surface rounded-card text-left overflow-hidden shadow-lift transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div class="bg-primary-soft px-6 py-4 border-b border-line">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="h-10 w-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="h-10 w-10 bg-primary-soft rounded-card flex items-center justify-center">
+                <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
               </div>
               <div>
-                <h3 class="text-lg font-semibold text-gray-900">Приети задачи</h3>
-                <p class="text-sm text-gray-600">Задачи за които имаш създадено репо</p>
+                <h3 class="text-lg font-semibold text-ink">Приети задачи</h3>
+                <p class="text-sm text-ink-soft">Задачи за които имаш създадено репо</p>
               </div>
             </div>
-            <button onclick="closeAcceptedAssignmentsModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+            <button onclick="closeAcceptedAssignmentsModal()" class="text-muted hover:text-muted transition-colors">
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           </div>
         </div>
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div class="px-6 py-4 bg-sunken border-b border-line">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Прогрес</span>
-            <span class="text-sm font-semibold text-blue-600"><span id="accepted-modal-count">0</span>/14 приети</span>
+            <span class="text-sm font-medium text-ink-soft">Прогрес</span>
+            <span class="text-sm font-semibold text-primary"><span id="accepted-modal-count">0</span>/14 приети</span>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-2.5">
-            <div id="accepted-progress-bar" class="bg-gradient-to-r from-blue-600 to-cyan-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          <div class="w-full bg-sunken rounded-pill h-2.5">
+            <div id="accepted-progress-bar" class="bg-primary h-2.5 rounded-pill transition-all duration-300" style="width: 0%"></div>
           </div>
         </div>
         <div class="px-6 py-4 max-h-96 overflow-y-auto">
           <div class="space-y-4" id="accepted-assignments-list"></div>
         </div>
-        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
-          <button onclick="closeAcceptedAssignmentsModal()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+        <div class="bg-sunken px-6 py-4 border-t border-line flex justify-end">
+          <button onclick="closeAcceptedAssignmentsModal()" class="inline-flex items-center px-4 py-2 border border-line shadow-card text-sm font-medium rounded-box text-ink-soft bg-surface hover:bg-sunken transition-colors">
             Затвори
           </button>
         </div>
@@ -784,42 +802,42 @@
   <!-- Completed Assignments Modal -->
   <div id="completed-assignments-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeCompletedAssignmentsModal()"></div>
-      <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-        <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+      <div class="fixed inset-0 bg-muted bg-opacity-75 transition-opacity" onclick="closeCompletedAssignmentsModal()"></div>
+      <div class="inline-block align-bottom bg-surface rounded-card text-left overflow-hidden shadow-lift transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div class="bg-ok-soft px-6 py-4 border-b border-line">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="h-10 w-10 bg-ok-soft rounded-card flex items-center justify-center">
+                <svg class="h-6 w-6 text-ok" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </div>
               <div>
-                <h3 class="text-lg font-semibold text-gray-900">Завършени задачи</h3>
-                <p class="text-sm text-gray-600">Успешно преминати тестове</p>
+                <h3 class="text-lg font-semibold text-ink">Завършени задачи</h3>
+                <p class="text-sm text-ink-soft">Успешно преминати тестове</p>
               </div>
             </div>
-            <button onclick="closeCompletedAssignmentsModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+            <button onclick="closeCompletedAssignmentsModal()" class="text-muted hover:text-muted transition-colors">
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           </div>
         </div>
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div class="px-6 py-4 bg-sunken border-b border-line">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Прогрес</span>
-            <span class="text-sm font-semibold text-green-600"><span id="completed-modal-count">0</span>/14 завършени</span>
+            <span class="text-sm font-medium text-ink-soft">Прогрес</span>
+            <span class="text-sm font-semibold text-ok"><span id="completed-modal-count">0</span>/14 завършени</span>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-2.5">
-            <div id="completed-progress-bar" class="bg-gradient-to-r from-green-600 to-emerald-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          <div class="w-full bg-sunken rounded-pill h-2.5">
+            <div id="completed-progress-bar" class="bg-ok h-2.5 rounded-pill transition-all duration-300" style="width: 0%"></div>
           </div>
         </div>
         <div class="px-6 py-4 max-h-96 overflow-y-auto">
           <div class="space-y-4" id="completed-assignments-list"></div>
         </div>
-        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
-          <button onclick="closeCompletedAssignmentsModal()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+        <div class="bg-sunken px-6 py-4 border-t border-line flex justify-end">
+          <button onclick="closeCompletedAssignmentsModal()" class="inline-flex items-center px-4 py-2 border border-line shadow-card text-sm font-medium rounded-box text-ink-soft bg-surface hover:bg-sunken transition-colors">
             Затвори
           </button>
         </div>
