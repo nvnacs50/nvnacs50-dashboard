@@ -1,7 +1,20 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Manrope, IBM_Plex_Mono } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin'] })
+// Кирилицата е задължителна — целият интерфейс е на български.
+const manrope = Manrope({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-ui-next',
+  display: 'swap',
+})
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500'],
+  variable: '--font-mono-next',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'Grade Manager',
@@ -14,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="bg">
+      <body className={`${manrope.variable} ${plexMono.variable}`}>{children}</body>
     </html>
   )
 }

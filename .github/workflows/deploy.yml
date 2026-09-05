@@ -44,6 +44,7 @@ jobs:
           cp grade-manager/public/callback.html deploy-output/
           cp grade-manager/public/config.js deploy-output/
           cp grade-manager/public/accept.html deploy-output/
+          cp grade-manager/public/theme.css deploy-output/
 
           # Copy student dashboard to root
           cp -r grade-manager/public/student deploy-output/
