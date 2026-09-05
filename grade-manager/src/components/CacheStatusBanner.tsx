@@ -46,9 +46,9 @@ export default function CacheStatusBanner({
   } => {
     if (!timestamp) {
       return {
-        bg: 'bg-gray-50',
-        border: 'border-gray-200',
-        text: 'text-gray-700',
+        bg: 'bg-sunken',
+        border: 'border-line',
+        text: 'text-ink-soft',
         icon: '⚪',
       };
     }
@@ -59,23 +59,23 @@ export default function CacheStatusBanner({
 
     if (age < thirtyMin) {
       return {
-        bg: 'bg-green-50',
-        border: 'border-green-200',
-        text: 'text-green-800',
+        bg: 'bg-ok-soft',
+        border: 'border-ok-soft',
+        text: 'text-ok',
         icon: '🟢',
       };
     } else if (age < twoHours) {
       return {
-        bg: 'bg-yellow-50',
-        border: 'border-yellow-200',
-        text: 'text-yellow-800',
+        bg: 'bg-warn-soft',
+        border: 'border-warn-soft',
+        text: 'text-warn',
         icon: '🟡',
       };
     } else {
       return {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-800',
+        bg: 'bg-danger-soft',
+        border: 'border-danger-soft',
+        text: 'text-danger',
         icon: '🔴',
       };
     }
@@ -116,7 +116,7 @@ export default function CacheStatusBanner({
 
   return (
     <div
-      className={`rounded-lg border ${colors.border} ${colors.bg} px-4 py-3 mb-6 shadow-sm`}
+      className={`rounded-box border ${colors.border} ${colors.bg} px-4 py-3 mb-6 shadow-card`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -132,7 +132,7 @@ export default function CacheStatusBanner({
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-600 mt-0.5">
+            <p className="text-xs text-ink-soft mt-0.5">
               Източник: <span className="font-medium">{getSourceLabel()}</span>
               {timestamp && (
                 <>
@@ -154,7 +154,7 @@ export default function CacheStatusBanner({
         <button
           onClick={onSync}
           disabled={isLoading}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center px-4 py-2 border border-line shadow-card text-sm font-medium rounded-box text-ink-soft bg-surface hover:bg-sunken focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <svg
             className={`-ml-1 mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}

@@ -63,13 +63,13 @@ export default function StudentDetailsModal({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'bg-ok-soft border-ok-soft';
       case 'failure':
-        return 'bg-red-50 border-red-200';
+        return 'bg-danger-soft border-danger-soft';
       case 'in_progress':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-warn-soft border-warn-soft';
       default:
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-sunken border-line';
     }
   };
 
@@ -94,35 +94,35 @@ export default function StudentDetailsModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        className="fixed inset-0 bg-ink bg-opacity-75 transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-xl transform transition-all">
+        <div className="relative w-full max-w-4xl bg-surface rounded-card shadow-lift transform transition-all">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-200 rounded-t-2xl">
+          <div className="bg-sunken px-6 py-4 border-b border-line rounded-t-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <img
                   src={student.avatarUrl}
                   alt={student.name}
-                  className="h-16 w-16 rounded-full ring-4 ring-white"
+                  className="h-16 w-16 rounded-pill ring-4 ring-white"
                 />
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{student.name}</h3>
-                  <p className="text-sm text-gray-600">@{student.username}</p>
+                  <h3 className="text-xl font-bold text-ink">{student.name}</h3>
+                  <p className="text-sm text-ink-soft">@{student.username}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted">
                       {student.totalCommits} total commits
                     </span>
-                    <span className="text-gray-300">•</span>
+                    <span className="text-muted">•</span>
                     <a
                       href={`https://github.com/${student.username}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:text-blue-700"
+                      className="text-xs text-primary hover:text-primary"
                     >
                       GitHub Profile →
                     </a>
@@ -131,7 +131,7 @@ export default function StudentDetailsModal({
               </div>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-500 transition-colors"
+                className="text-muted hover:text-muted transition-colors"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -146,34 +146,34 @@ export default function StudentDetailsModal({
           </div>
 
           {/* Progress Summary */}
-          <div className="px-6 py-4 bg-white border-b border-gray-200">
+          <div className="px-6 py-4 bg-surface border-b border-line">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Общ прогрес</span>
-              <span className="text-lg font-bold text-gray-900">
+              <span className="text-sm font-medium text-ink-soft">Общ прогрес</span>
+              <span className="text-lg font-bold text-ink">
                 {student.completedCount}/{student.totalAssignments} ({student.progressPercentage}%)
               </span>
             </div>
-            <div className="flex-1 bg-gray-200 rounded-full h-3">
+            <div className="flex-1 bg-sunken rounded-pill h-3">
               <div
-                className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all"
+                className="bg-progress h-3 rounded-pill transition-all"
                 style={{ width: `${student.progressPercentage}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted mt-2">
               Последна активност: {formatDate(student.lastActive)}
             </p>
           </div>
 
           {/* Activity Chart */}
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
+          <div className="px-6 py-4 bg-sunken border-b border-line">
+            <h4 className="text-sm font-medium text-ink-soft mb-3">
               📈 Commit активност (последните 14 дни)
             </h4>
             <div className="flex items-end gap-1" style={{ height: `${chartHeight}px` }}>
               {student.commitActivity.map((count, index) => (
                 <div key={index} className="flex-1 flex flex-col items-center gap-1">
                   <div
-                    className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
+                    className="w-full bg-primary rounded-t transition-all hover:bg-primary"
                     style={{
                       height: count > 0 ? `${(count / maxActivity) * chartHeight}px` : '2px',
                       minHeight: '2px',
@@ -184,50 +184,50 @@ export default function StudentDetailsModal({
               ))}
             </div>
             <div className="flex justify-between mt-2">
-              <span className="text-xs text-gray-500">14 дни назад</span>
-              <span className="text-xs text-gray-500">Днес</span>
+              <span className="text-xs text-muted">14 дни назад</span>
+              <span className="text-xs text-muted">Днес</span>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="px-6 py-3 bg-white border-b border-gray-200">
+          <div className="px-6 py-3 bg-surface border-b border-line">
             <div className="flex gap-1">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-box text-sm font-medium transition-colors ${
                   activeTab === 'all'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-primary-soft text-primary'
+                    : 'text-ink-soft hover:bg-sunken'
                 }`}
               >
                 Всички ({student.assignments.length})
               </button>
               <button
                 onClick={() => setActiveTab('completed')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-box text-sm font-medium transition-colors ${
                   activeTab === 'completed'
-                    ? 'bg-green-100 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-ok-soft text-ok'
+                    : 'text-ink-soft hover:bg-sunken'
                 }`}
               >
                 Завършени ({completedCount})
               </button>
               <button
                 onClick={() => setActiveTab('in_progress')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-box text-sm font-medium transition-colors ${
                   activeTab === 'in_progress'
-                    ? 'bg-yellow-100 text-yellow-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-warn-soft text-warn'
+                    : 'text-ink-soft hover:bg-sunken'
                 }`}
               >
                 В процес ({inProgressCount})
               </button>
               <button
                 onClick={() => setActiveTab('failed')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-box text-sm font-medium transition-colors ${
                   activeTab === 'failed'
-                    ? 'bg-red-100 text-red-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-danger-soft text-danger'
+                    : 'text-ink-soft hover:bg-sunken'
                 }`}
               >
                 Неуспешни ({failedCount})
@@ -239,12 +239,12 @@ export default function StudentDetailsModal({
           <div className="px-6 py-4 max-h-96 overflow-y-auto">
             <div className="space-y-3">
               {filteredAssignments.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Няма задачи в тази категория</p>
+                <p className="text-center text-muted py-8">Няма задачи в тази категория</p>
               ) : (
                 filteredAssignments.map((assignment, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg border transition-all ${getStatusColor(
+                    className={`p-4 rounded-box border transition-all ${getStatusColor(
                       assignment.status
                     )}`}
                   >
@@ -252,22 +252,22 @@ export default function StudentDetailsModal({
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{getStatusIcon(assignment.status)}</span>
-                          <h5 className="font-medium text-gray-900">{assignment.name}</h5>
+                          <h5 className="font-medium text-ink">{assignment.name}</h5>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Repo: {assignment.repoName}</p>
+                        <p className="text-xs text-muted mt-1">Repo: {assignment.repoName}</p>
                         {assignment.lastCommitMessage && (
-                          <p className="text-sm text-gray-600 mt-2 italic">
+                          <p className="text-sm text-ink-soft mt-2 italic">
                             "{assignment.lastCommitMessage}"
                           </p>
                         )}
                       </div>
                       <div className="text-right ml-4">
-                        <p className="text-xs text-gray-500">{formatDate(assignment.lastCommitDate)}</p>
+                        <p className="text-xs text-muted">{formatDate(assignment.lastCommitDate)}</p>
                         <a
                           href={`https://github.com/nvnacs50/${assignment.repoName}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-700 mt-1 inline-block"
+                          className="text-xs text-primary hover:text-primary mt-1 inline-block"
                         >
                           Виж →
                         </a>
@@ -280,10 +280,10 @@ export default function StudentDetailsModal({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-2xl flex justify-end">
+          <div className="bg-sunken px-6 py-4 border-t border-line rounded-b-2xl flex justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 bg-surface border border-line rounded-box text-sm font-medium text-ink-soft hover:bg-sunken transition-colors"
             >
               Затвори
             </button>
