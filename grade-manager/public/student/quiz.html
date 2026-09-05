@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../globals.css">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: var(--font-ui);
+      background: var(--ground);
       min-height: 100vh;
       margin: 0;
       padding: 20px;
@@ -18,13 +18,13 @@
       max-width: 900px;
       margin: 0 auto;
       background: white;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
       overflow: hidden;
     }
 
     .quiz-header {
-      background: #4a5568;
+      background: var(--ink-soft);
       color: white;
       padding: 24px;
       display: flex;
@@ -39,7 +39,7 @@
     }
 
     .timer.warning {
-      color: #fc8181;
+      color: var(--danger);
       animation: pulse 1s infinite;
     }
 
@@ -50,39 +50,39 @@
 
     .quiz-progress {
       padding: 16px 24px;
-      background: #edf2f7;
-      border-bottom: 2px solid #e2e8f0;
+      background: var(--sunken);
+      border-bottom: 2px solid var(--line);
     }
 
     .keyboard-hint {
-      background: #f0f4ff;
-      color: #5a67d8;
+      background: var(--primary-soft);
+      color: var(--primary-hover);
       padding: 8px 16px;
       font-size: 13px;
       text-align: center;
-      border-bottom: 1px solid #d6e0ff;
+      border-bottom: 1px solid var(--primary-soft);
     }
 
     .keyboard-hint kbd {
       background: white;
       padding: 2px 6px;
-      border-radius: 3px;
-      border: 1px solid #cbd5e0;
+      border-radius: var(--r-chip);
+      border: 1px solid var(--line-strong);
       font-family: monospace;
       font-weight: bold;
       margin: 0 2px;
     }
 
     .progress-bar {
-      background: #e2e8f0;
+      background: var(--line);
       height: 8px;
-      border-radius: 4px;
+      border-radius: var(--r-chip);
       overflow: hidden;
       margin-top: 8px;
     }
 
     .progress-fill {
-      background: linear-gradient(90deg, #667eea, #764ba2);
+      background: var(--progress);
       height: 100%;
       transition: width 0.3s ease;
     }
@@ -96,7 +96,7 @@
     }
 
     .question-number {
-      color: #667eea;
+      color: var(--primary);
       font-weight: bold;
       font-size: 14px;
       text-transform: uppercase;
@@ -112,16 +112,16 @@
 
     /* Code block styling for questions with code */
     .question-text pre {
-      background: #2d3748;
-      color: #e2e8f0;
+      background: var(--ink);
+      color: var(--line);
       padding: 16px;
-      border-radius: 8px;
+      border-radius: var(--r-box);
       overflow-x: auto;
-      font-family: 'Courier New', Consolas, Monaco, monospace;
+      font-family: var(--font-mono);
       font-size: 14px;
       line-height: 1.5;
       margin: 12px 0;
-      border: 1px solid #4a5568;
+      border: 1px solid var(--ink-soft);
       /* Prevent text selection/copying */
       user-select: none;
       -webkit-user-select: none;
@@ -149,16 +149,16 @@
       display: flex;
       align-items: center;
       padding: 16px;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
+      border: 2px solid var(--line);
+      border-radius: var(--r-box);
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
     }
 
     .answer-label:hover {
-      border-color: #667eea;
-      background: #f7fafc;
+      border-color: var(--primary);
+      background: var(--sunken);
     }
 
     /* Keyboard shortcut indicator */
@@ -169,9 +169,9 @@
       top: 12px;
       width: 24px;
       height: 24px;
-      background: #e2e8f0;
-      color: #718096;
-      border-radius: 4px;
+      background: var(--line);
+      color: var(--muted);
+      border-radius: var(--r-chip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -181,7 +181,7 @@
     }
 
     .answer-label:hover::before {
-      background: #667eea;
+      background: var(--primary);
       color: white;
     }
 
@@ -189,7 +189,7 @@
       margin-right: 12px;
       width: 20px;
       height: 20px;
-      accent-color: #667eea;
+      accent-color: var(--primary);
     }
 
     .answer-text {
@@ -198,13 +198,13 @@
     }
 
     .answer-label input:checked + .answer-indicator {
-      border-color: #667eea;
-      background: #667eea;
+      border-color: var(--primary);
+      background: var(--primary);
     }
 
     .quiz-navigation {
       padding: 24px 32px;
-      border-top: 2px solid #e2e8f0;
+      border-top: 2px solid var(--line);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -213,7 +213,7 @@
     .btn {
       padding: 12px 24px;
       border: none;
-      border-radius: 6px;
+      border-radius: var(--r-chip);
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
@@ -221,14 +221,14 @@
     }
 
     .btn-primary {
-      background: #667eea;
+      background: var(--primary);
       color: white;
       position: relative;
       padding-right: 70px; /* Make room for Enter badge */
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #5a67d8;
+      background: var(--primary-hover);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
@@ -243,18 +243,18 @@
       transform: translateY(-50%);
       background: rgba(255, 255, 255, 0.2);
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: var(--r-chip);
       font-size: 14px;
       font-weight: bold;
     }
 
     .btn-secondary {
-      background: #e2e8f0;
-      color: #2d3748;
+      background: var(--line);
+      color: var(--ink);
     }
 
     .btn-secondary:hover:not(:disabled) {
-      background: #cbd5e0;
+      background: var(--line-strong);
     }
 
     .btn:disabled {
@@ -263,12 +263,12 @@
     }
 
     .btn-success {
-      background: #48bb78;
+      background: var(--ok);
       color: white;
     }
 
     .btn-success:hover:not(:disabled) {
-      background: #38a169;
+      background: var(--ok);
     }
 
     .question-navigator {
@@ -281,8 +281,8 @@
     .nav-dot {
       width: 40px;
       height: 40px;
-      border: 2px solid #e2e8f0;
-      border-radius: 6px;
+      border: 2px solid var(--line);
+      border-radius: var(--r-chip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -293,18 +293,18 @@
     }
 
     .nav-dot:hover {
-      border-color: #667eea;
+      border-color: var(--primary);
     }
 
     .nav-dot.answered {
-      background: #c3dafe;
-      border-color: #667eea;
+      background: var(--primary-soft);
+      border-color: var(--primary);
     }
 
     .nav-dot.current {
-      background: #667eea;
+      background: var(--primary);
       color: white;
-      border-color: #667eea;
+      border-color: var(--primary);
     }
 
     #loading, #quiz-start, #quiz-active, #quiz-results {
@@ -319,19 +319,19 @@
     .start-screen h1, .results-screen h1 {
       font-size: 32px;
       margin-bottom: 16px;
-      color: #2d3748;
+      color: var(--ink);
     }
 
     .start-screen p {
       font-size: 18px;
-      color: #718096;
+      color: var(--muted);
       margin-bottom: 32px;
     }
 
     .quiz-info {
-      background: #f7fafc;
+      background: var(--sunken);
       padding: 24px;
-      border-radius: 8px;
+      border-radius: var(--r-box);
       margin: 24px 0;
       text-align: left;
     }
@@ -343,7 +343,7 @@
 
     .quiz-info li {
       padding: 8px 0;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--line);
     }
 
     .quiz-info li:last-child {
@@ -353,29 +353,29 @@
     .score-display {
       font-size: 72px;
       font-weight: bold;
-      color: #667eea;
+      color: var(--primary);
       margin: 24px 0;
     }
 
     .score-label {
       font-size: 18px;
-      color: #718096;
+      color: var(--muted);
       margin-bottom: 32px;
     }
 
     .error-message {
-      background: #fed7d7;
-      color: #c53030;
+      background: var(--danger-soft);
+      color: var(--danger);
       padding: 16px;
-      border-radius: 8px;
+      border-radius: var(--r-box);
       margin-bottom: 24px;
     }
 
     .success-message {
-      background: #c6f6d5;
-      color: #276749;
+      background: var(--ok-soft);
+      color: var(--ok);
       padding: 16px;
-      border-radius: 8px;
+      border-radius: var(--r-box);
       margin-bottom: 24px;
     }
 
@@ -400,7 +400,7 @@
     .modal-content {
       background: white;
       padding: 40px;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       max-width: 500px;
       width: 90%;
@@ -408,7 +408,7 @@
 
     .modal-content h2 {
       margin-top: 0;
-      color: #2d3748;
+      color: var(--ink);
       text-align: center;
       margin-bottom: 24px;
     }
@@ -420,30 +420,30 @@
     .form-group label {
       display: block;
       margin-bottom: 8px;
-      color: #4a5568;
+      color: var(--ink-soft);
       font-weight: 600;
     }
 
     .form-group input {
       width: 100%;
       padding: 12px;
-      border: 2px solid #e2e8f0;
-      border-radius: 6px;
+      border: 2px solid var(--line);
+      border-radius: var(--r-chip);
       font-size: 16px;
       box-sizing: border-box;
     }
 
     .form-group input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: var(--primary);
     }
 
     .form-group input.error {
-      border-color: #fc8181;
+      border-color: var(--danger);
     }
 
     .form-error {
-      color: #c53030;
+      color: var(--danger);
       font-size: 14px;
       margin-top: 4px;
       display: none;
@@ -463,6 +463,8 @@
       flex: 1;
     }
   </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="../theme.css">
 </head>
 <body>
   <!-- Access Control Modal -->

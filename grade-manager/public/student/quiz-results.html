@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../globals.css">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #f7fafc;
+      font-family: var(--font-ui);
+      background: var(--sunken);
       margin: 0;
       padding: 20px;
     }
@@ -21,19 +21,19 @@
     .header {
       background: white;
       padding: 24px;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-bottom: 24px;
     }
 
     .header h1 {
       margin: 0 0 8px 0;
-      color: #2d3748;
+      color: var(--ink);
     }
 
     .header p {
       margin: 0;
-      color: #718096;
+      color: var(--muted);
     }
 
     .stats-grid {
@@ -46,27 +46,27 @@
     .stat-card {
       background: white;
       padding: 20px;
-      border-radius: 8px;
+      border-radius: var(--r-box);
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .stat-value {
       font-size: 32px;
       font-weight: bold;
-      color: #667eea;
+      color: var(--primary);
       margin-bottom: 4px;
     }
 
     .stat-label {
       font-size: 14px;
-      color: #718096;
+      color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .results-table {
       background: white;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       overflow: hidden;
     }
@@ -77,7 +77,7 @@
     }
 
     thead {
-      background: #4a5568;
+      background: var(--ink-soft);
       color: white;
     }
 
@@ -92,11 +92,11 @@
 
     td {
       padding: 16px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--line);
     }
 
     tbody tr:hover {
-      background: #f7fafc;
+      background: var(--sunken);
     }
 
     tbody tr:last-child td {
@@ -106,29 +106,29 @@
     .score-badge {
       display: inline-block;
       padding: 4px 12px;
-      border-radius: 12px;
+      border-radius: var(--r-card);
       font-weight: 600;
       font-size: 14px;
     }
 
     .score-excellent {
-      background: #c6f6d5;
-      color: #22543d;
+      background: var(--ok-soft);
+      color: var(--ok);
     }
 
     .score-good {
-      background: #bee3f8;
-      color: #2c5282;
+      background: var(--primary-soft);
+      color: var(--primary);
     }
 
     .score-average {
-      background: #fef5e7;
-      color: #744210;
+      background: var(--warn-soft);
+      color: var(--warn);
     }
 
     .score-poor {
-      background: #fed7d7;
-      color: #742a2a;
+      background: var(--danger-soft);
+      color: var(--danger);
     }
 
     .loading {
@@ -139,13 +139,13 @@
     .no-results {
       text-align: center;
       padding: 48px;
-      color: #718096;
+      color: var(--muted);
     }
 
     .btn {
       padding: 12px 24px;
       border: none;
-      border-radius: 6px;
+      border-radius: var(--r-chip);
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
@@ -155,24 +155,24 @@
     }
 
     .btn-primary {
-      background: #667eea;
+      background: var(--primary);
       color: white;
     }
 
     .btn-primary:hover {
-      background: #5a67d8;
+      background: var(--primary-hover);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
 
     .btn-secondary {
-      background: #e2e8f0;
-      color: #2d3748;
+      background: var(--line);
+      color: var(--ink);
       margin-right: 8px;
     }
 
     .btn-secondary:hover {
-      background: #cbd5e0;
+      background: var(--line-strong);
     }
 
     .filters {
@@ -184,8 +184,8 @@
 
     .filter-input {
       padding: 8px 12px;
-      border: 2px solid #e2e8f0;
-      border-radius: 6px;
+      border: 2px solid var(--line);
+      border-radius: var(--r-chip);
       font-size: 14px;
       flex: 1;
       max-width: 300px;
@@ -195,6 +195,8 @@
       margin-left: auto;
     }
   </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="../theme.css">
 </head>
 <body>
   <div class="container">
