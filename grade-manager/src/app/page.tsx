@@ -5,6 +5,7 @@ import { GitHubClassroomAPI, Student, StudentDetails } from '../lib/github-class
 import StudentsTable from '../components/StudentsTable';
 import StudentDetailsModal from '../components/StudentDetailsModal';
 import CacheStatusBanner from '../components/CacheStatusBanner';
+import BillingWidget from '../components/BillingWidget';
 import { exportStudents } from '../lib/export';
 
 type ViewMode = 'github' | 'csv';
@@ -198,6 +199,9 @@ export default function TeacherDashboard() {
               <p className="text-xs text-muted font-mono">nvnacs50 · CS50</p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Скрива се сам, ако нямаш права за сметките на организацията */}
+              <BillingWidget />
+
               {user && (
                 <div className="flex items-center gap-2">
                   <img
