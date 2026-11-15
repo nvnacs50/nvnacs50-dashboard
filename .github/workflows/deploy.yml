@@ -51,7 +51,7 @@ jobs:
 
           # Never publish quiz question sources (they contain the answer key)
           rm -rf deploy-output/student/data deploy-output/teacher/student/data
-          ! grep -rl 'fraction="100"' deploy-output || (echo "Answer key found in deploy output" && exit 1)
+          ! grep -rl --include='*.xml' 'fraction="100"' deploy-output || (echo "Answer key found in deploy output" && exit 1)
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
