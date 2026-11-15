@@ -51,23 +51,8 @@
       elements.noResults.style.display = 'none';
       elements.resultsTable.style.display = 'none';
 
-      // Fetch from configured results Gist with authentication
-      const gistId = CONFIG.QUIZ_RESULTS_GIST_ID;
-      const token = auth.getToken();
-      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-        headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`GitHub API грешка: ${response.status}`);
-      }
-
-      const gistData = await response.json();
-      const content = gistData.files['quiz-results.json']?.content || '[]';
-      allResults = JSON.parse(content);
+      // Резултатите се четат през worker-а, който проверява, че потребителят е преподавател
+      allResults = await quizStorage.getAllResults();
       filteredResults = [...allResults];
 
       console.log(`Заредени ${allResults.length} резултата`);
@@ -81,6 +66,11 @@
 
     } catch (error) {
       console.error('Error loading results:', error);
+      if (error.status === 403) {
+        alert('Тази страница е само за преподаватели.');
+        window.location.href = 'dashboard.html';
+        return;
+      }
       showNoResults();
     } finally {
       elements.loading.style.display = 'none';
@@ -347,7 +337,7 @@
           <p>Резултат: ${result.score}/${result.total} (${result.percentage}%)</p>
           <p>Време: ${formatTime(result.timeTaken)} | Дата: ${formatDate(result.timestamp)}</p>
         </div>
-        ${result.answers.map((answer, index) => `
+        ${(result.answers || []).map((answer, index) => `
           <div class="question ${answer.isCorrect ? 'correct' : 'incorrect'}">
             <div class="q-text">${index + 1}. ${escapeHtml(answer.question)}</div>
             <div class="answer">

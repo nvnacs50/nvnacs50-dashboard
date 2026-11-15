@@ -31,3 +31,6 @@ npm-debug.log*
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Quiz question sources (never deploy or commit)
+public/student/data/

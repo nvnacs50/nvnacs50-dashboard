@@ -9,7 +9,7 @@
 - ⏱️ **25 минути** таймер
 - 🎯 **1 точка = 1 верен отговор**
 - 🔒 **Само 1 опит** (проверка в localStorage + GitHub)
-- 💾 **Автоматично запазване** на резултати в GitHub Gists
+- 💾 **Автоматично запазване** на резултати през Cloudflare Worker (оценяване на сървъра)
 - 📊 **Директна визуализация** на резултат
 - 🔄 **Навигация** между въпроси
 - 📌 **Progress tracker** за отговорени въпроси
@@ -29,12 +29,10 @@
 public/student/
 ├── quiz.html                      # Quiz страница
 ├── quiz-results.html              # Teacher dashboard
-├── data/
-│   └── cs50-questions.xml         # 225 въпроса (Moodle XML формат)
+├── data/                          # (gitignored) локален XML; качва се в secret Gist за worker-а
 ├── js/
-│   ├── xml-parser.js              # XML парсер
 │   ├── quiz-manager.js            # Quiz логика + таймер
-│   ├── quiz-storage.js            # GitHub Gists storage
+│   ├── quiz-storage.js            # API клиент към Cloudflare Worker-а
 │   ├── quiz-app.js                # Главна интеграция
 │   └── quiz-results-viewer.js    # Teacher dashboard логика
 ```

@@ -51,40 +51,30 @@ node scripts/upload-questions-to-gist.js
 След като скриптът завърши успешно:
 
 ```bash
-git add public/student/config.js
-git commit -m "Configure quiz questions Gist ID"
-git push
+cd cloudflare-worker-quiz
+wrangler secret put QUIZ_QUESTIONS_GIST_ID   # въведете ID-то, което скриптът отпечата
 ```
 
 ---
 
 ## 🔒 Сигурност
 
-### ✅ ПРАВИЛНО:
+### Как е устроено:
 
-- ✅ Въпросите са в **private Gist** (само с OAuth token може да се видят)
-- ✅ Студентите **НЕ МОГАТ** да видят въпросите в repo
-- ✅ `.gitignore` блокира `cs50-questions.xml` от commit
+- Въпросите (с верните отговори) са в **secret Gist**, чието ID е **secret на Cloudflare Worker-а**
+  (`QUIZ_QUESTIONS_GIST_ID`). Браузърът на студента никога не вижда Gist-а.
+- Worker-ът избира 25 случайни въпроса, разбърква отговорите и праща на браузъра
+  **само текстовете** (без кое е вярно). Оценяването става в worker-а.
+- Паролата за достъп и паролата за отключване са secrets на worker-а
+  (`QUIZ_ACCESS_PASSWORD`, `TEACHER_UNLOCK_PASSWORD`), не са в кода.
+- Резултатите се четат и трият само от GitHub потребители в `TEACHER_LOGINS`.
 
 ### ❌ НИКОГА НЕ:
 
-- ❌ НЕ commit-вайте `cs50-questions.xml` към GitHub
-- ❌ НЕ споделяйте GitHub Token-a си
-- ❌ НЕ правете Gist-a публичен
-
----
-
-## 📊 Как студентите виждат въпросите?
-
-1. Студент влиза с GitHub OAuth
-2. Quiz система използва **OAuth token** на студента
-3. Fetch-ва въпросите от **private Gist**
-4. Студентът вижда само 25 рандомизирани въпроса
-
-**Важно:** Студентът не може да види всичките 225 въпроса, защото:
-- API връща само Gist ID (не съдържанието)
-- OAuth scope не позволява четене на Gist-ове на други потребители
-- Въпросите се fetch-ват само в момента на стартиране на теста
+- ❌ НЕ commit-вайте XML с въпроси (`.gitignore` блокира `public/student/data/`)
+- ❌ НЕ пишете Gist ID-та, пароли или токени в `config.js`, в README или в commit съобщения
+- ❌ НЕ разчитайте, че "secret" Gist е таен: **всеки, който знае ID-то, може да го чете без логин**.
+  Затова ID-то живее само в worker-а.
 
 ---
 

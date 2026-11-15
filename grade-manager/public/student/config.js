@@ -1,7 +1,8 @@
 
 
 // GitHub Classroom Dashboard Configuration
-// ВАЖНО: Попълни тези стойности след като създадеш OAuth App
+// ВАЖНО: Тук има САМО публични стойности. Пароли, Gist ID-та и токени живеят
+// като secrets в Cloudflare Worker-а (виж cloudflare-worker-quiz/wrangler.toml).
 
 const CONFIG = {
   // GitHub OAuth App Client ID (публичен, може да е в кода)
@@ -31,20 +32,9 @@ const CONFIG = {
   },
 
 
-  // Quiz Questions Gist ID (PUBLIC)
-  // Въпросите са в public Gist (не в repo)
-  QUIZ_QUESTIONS_GIST_ID: '***REMOVED***',
-
-  // Quiz Results Gist ID (PRIVATE)
-  // Учителят вижда всички резултати тук
-  QUIZ_RESULTS_GIST_ID: '***REMOVED***',
-
-  // Cloudflare Worker URL (saves results securely)
-  // Teacher's token is stored as Worker secret (not in code)
-  QUIZ_RESULTS_WORKER_URL: 'https://quiz-results-saver.m-avramova.workers.dev',
-
-  // Quiz access password
-  QUIZ_ACCESS_PASSWORD: '***REMOVED***'
+  // Cloudflare Worker за теста: проверява паролата, раздава въпросите (без верни
+  // отговори), оценява и пази резултатите. Клиентът няма достъп до Gist-овете.
+  QUIZ_WORKER_URL: 'https://quiz-results-saver.m-avramova.workers.dev'
 };
 
 // Export за използване в други scripts

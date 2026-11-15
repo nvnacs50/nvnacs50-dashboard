@@ -5,6 +5,10 @@ name = "github-classroom-oauth"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+[vars]
+# Only these origins may use the token-exchange relay
+ALLOWED_ORIGINS = "https://mixaelaavramova.github.io,https://nvnacs50.github.io"
+
 # Environment variables (secrets)
 # Set these using: wrangler secret put GITHUB_CLIENT_ID
 # and: wrangler secret put GITHUB_CLIENT_SECRET

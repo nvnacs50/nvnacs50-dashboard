@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 
+// Cloudflare Worker за теста (secrets, въпроси, оценяване, резултати)
+const QUIZ_WORKER_URL = 'https://quiz-results-saver.m-avramova.workers.dev';
+
 interface QuizResult {
   username: string;
   facultyNumber?: string;
@@ -51,23 +54,22 @@ export default function QuizResultsPage() {
         throw new Error('Not authenticated');
       }
 
-      const gistId = '***REMOVED***'; // QUIZ_RESULTS_GIST_ID
-      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+      // Резултатите се четат през worker-а; той проверява, че токенът е на преподавател
+      const response = await fetch(`${QUIZ_WORKER_URL}/results`, {
+        method: 'POST',
         headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: '{}'
       });
 
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status}`);
+        throw new Error(data.error || `Worker error: ${response.status}`);
       }
 
-      const gistData = await response.json();
-      const content = gistData.files['quiz-results.json']?.content || '[]';
-      const parsedResults = JSON.parse(content);
-
-      setResults(parsedResults);
+      setResults(Array.isArray(data.results) ? data.results : []);
     } catch (err: any) {
       console.error('Error loading results:', err);
       setError(err.message || 'Failed to load quiz results');
@@ -187,13 +189,17 @@ export default function QuizResultsPage() {
     }
 
     try {
-      // Use Cloudflare Worker to delete (it has the Gist owner's token)
-      const workerUrl = 'https://quiz-results-saver.m-avramova.workers.dev/delete';
+      // Worker-ът пази токена за Gist-а и допуска триене само от преподавател
+      const token = localStorage.getItem('gh_token');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
 
-      const response = await fetch(workerUrl, {
+      const response = await fetch(`${QUIZ_WORKER_URL}/delete`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           username: deleteModal.username

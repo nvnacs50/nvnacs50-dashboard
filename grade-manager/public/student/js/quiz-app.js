@@ -1,16 +1,18 @@
 // Quiz Application - Main Integration
+// Паролите, въпросите с верни отговори и оценяването са в Cloudflare Worker-а.
+// Този файл само показва въпросите и праща отговорите.
 (async function() {
   'use strict';
 
   // State
   let quizManager = null;
-  let quizStorage = null;
-  let allQuestions = [];
+  let quizApi = null;
   let currentUser = null;
-  let facultyNumber = null;
-  let quizStartTime = null;
+  let accessTicket = null;   // издаден от worker-а след вярна парола
+  let quizSession = null;    // подписана сесия от worker-а (въпроси + начало)
   let isQuizLocked = false;
   let tabSwitchCount = 0;
+  let isSubmitting = false;
 
   // DOM Elements
   const screens = {
@@ -68,7 +70,7 @@
   }
 
   /**
-   * Show lock modal with teacher password prompt
+   * Show lock modal with teacher password prompt (паролата се проверява в worker-а)
    */
   function showLockModal() {
     const modal = document.createElement('div');
@@ -121,21 +123,21 @@
     setTimeout(() => passwordInput.focus(), 100);
 
     // Handle unlock
-    const attemptUnlock = () => {
+    const attemptUnlock = async () => {
       const password = passwordInput.value;
+      unlockBtn.disabled = true;
 
-      // Teacher password from config
-      const teacherPassword = '***REMOVED***'; // Can be changed to CONFIG.TEACHER_UNLOCK_PASSWORD
-
-      if (password === teacherPassword) {
-        // Unlock successful
+      try {
+        await quizApi.unlock(quizSession, password);
         unlockQuiz();
         modal.remove();
-      } else {
-        // Wrong password
+      } catch (error) {
+        unlockError.textContent = error.status === 401 ? 'Грешна парола!' : ('Грешка: ' + error.message);
         unlockError.style.display = 'block';
         passwordInput.value = '';
         passwordInput.focus();
+      } finally {
+        unlockBtn.disabled = false;
       }
     };
 
@@ -185,15 +187,16 @@
   }
 
   /**
-   * Handle access form submission
+   * Handle access form submission - паролата се проверява в worker-а
    */
-  function handleAccessFormSubmit(e) {
+  async function handleAccessFormSubmit(e) {
     e.preventDefault();
 
     const facultyInput = document.getElementById('faculty-number');
     const passwordInput = document.getElementById('test-password');
     const facultyError = document.getElementById('faculty-error');
     const passwordError = document.getElementById('password-error');
+    const submitButton = e.target.querySelector('button[type="submit"]');
 
     // Reset errors
     facultyError.classList.remove('visible');
@@ -201,33 +204,58 @@
     facultyInput.classList.remove('error');
     passwordInput.classList.remove('error');
 
-    let hasError = false;
-
-    // Validate faculty number
+    // Validate faculty number format locally (само формат)
     if (!validateFacultyNumber(facultyInput.value)) {
       facultyError.classList.add('visible');
       facultyInput.classList.add('error');
-      hasError = true;
-    }
-
-    // Validate password
-    if (passwordInput.value !== CONFIG.QUIZ_ACCESS_PASSWORD) {
-      passwordError.classList.add('visible');
-      passwordInput.classList.add('error');
-      hasError = true;
-    }
-
-    if (hasError) {
       return;
     }
 
-    // Success - store faculty number, start time, and hide modal
-    facultyNumber = facultyInput.value;
-    quizStartTime = new Date().toISOString();
-    document.getElementById('access-modal').classList.add('hidden');
+    // Must be logged in with GitHub
+    if (!auth.isAuthenticated()) {
+      window.location.href = 'index.html';
+      return;
+    }
 
-    // Initialize quiz
-    init();
+    currentUser = auth.getUser();
+    quizApi = new QuizApi(auth.getToken());
+    if (submitButton) submitButton.disabled = true;
+
+    try {
+      const data = await quizApi.access(facultyInput.value, passwordInput.value);
+      accessTicket = data.ticket;
+
+      document.getElementById('access-modal').classList.add('hidden');
+      elements.usernameDisplay.textContent = currentUser.login;
+      setupAntiCheating();
+      showScreen('start');
+
+    } catch (error) {
+      if (error.status === 401 && error.message === 'Грешна парола') {
+        passwordError.classList.add('visible');
+        passwordInput.classList.add('error');
+        passwordInput.value = '';
+        passwordInput.focus();
+      } else if (error.status === 401) {
+        // Невалиден GitHub token - логни се отново
+        auth.clearAuth();
+        window.location.href = 'index.html';
+      } else if (error.status === 409) {
+        // Вече решаван тест
+        document.getElementById('access-modal').classList.add('hidden');
+        showScreen('start');
+        const prev = error.data && error.data.previous;
+        const when = prev && prev.timestamp ? new Date(prev.timestamp).toLocaleString('bg-BG') : '';
+        showError(`❌ Вече сте решавали този тест${when ? ' на ' + when : ''}.` +
+          (prev ? ` Резултат: ${prev.score}/${prev.total} (${prev.percentage}%)` : ''));
+        elements.startBtn.disabled = true;
+      } else {
+        passwordError.textContent = 'Грешка: ' + error.message;
+        passwordError.classList.add('visible');
+      }
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
   }
 
   /**
@@ -240,78 +268,19 @@
   }
 
   /**
-   * Show success message
+   * Start quiz - worker-ът избира въпросите и стартира часовника
    */
-  function showSuccess(message) {
-    elements.errorContainer.innerHTML = `
-      <div class="success-message">${message}</div>
-    `;
-  }
-
-  /**
-   * Initialize application
-   */
-  async function init() {
+  async function startQuiz() {
+    elements.startBtn.disabled = true;
     try {
       showScreen('loading');
 
-      // Check authentication
-      if (!auth.isAuthenticated()) {
-        window.location.href = 'index.html';
-        return;
-      }
+      const data = await quizApi.start(accessTicket);
+      quizSession = data.session;
 
-      currentUser = auth.getUser();
-      const token = auth.getToken();
-
-      elements.usernameDisplay.textContent = currentUser.login;
-
-      // Initialize storage
-      quizStorage = new QuizStorage(token);
-
-      // Check for previous attempt (GitHub Gist - source of truth)
-      const previousAttempt = await quizStorage.checkPreviousAttempt(currentUser.login);
-      if (previousAttempt) {
-        showScreen('start');
-        showError(`❌ Вече сте решавали този тест на ${new Date(previousAttempt.timestamp).toLocaleString('bg-BG')}. Резултат: ${previousAttempt.score} (${previousAttempt.percentage}%)`);
-        elements.startBtn.disabled = true;
-        return;
-      }
-
-      // Load questions from public Gist
-      const gistId = CONFIG.QUIZ_QUESTIONS_GIST_ID;
-      allQuestions = await MoodleXMLParser.loadFromGist(gistId, token);
-      console.log(`✅ Заредени ${allQuestions.length} въпроса`);
-
-      // Setup anti-cheating monitoring
-      setupAntiCheating();
-
-      showScreen('start');
-
-    } catch (error) {
-      console.error('Initialization error:', error);
-      showScreen('start');
-
-      if (error.message.includes('Gist ID не е конфигуриран')) {
-        showError('⚙️ Системата все още не е конфигурирана. Свържете се с учителя.');
-      } else {
-        showError('Грешка при зареждане на въпросите: ' + error.message);
-      }
-    }
-  }
-
-  /**
-   * Start quiz
-   */
-  function startQuiz() {
-    try {
-      // Initialize quiz manager
-      quizManager = new QuizManager(allQuestions, {
-        questionCount: 25,
-        timeLimit: 25 * 60 // 25 minutes
+      quizManager = new QuizManager(data.questions, {
+        timeLimit: data.timeLimit || 25 * 60
       });
-
-      quizManager.initializeQuiz();
 
       // Setup timer callbacks
       quizManager.onTimerTick = updateTimer;
@@ -320,6 +289,7 @@
 
       // Start timer
       quizManager.startTimer();
+      updateTimer(quizManager.timeRemaining);
 
       // Show quiz
       showScreen('active');
@@ -328,7 +298,15 @@
 
     } catch (error) {
       console.error('Error starting quiz:', error);
-      showError('Грешка при стартиране на теста.');
+      showScreen('start');
+      if (error.status === 409) {
+        showError('❌ Вече сте решавали този тест.');
+      } else if (error.status === 401) {
+        showError('Сесията е изтекла. Презаредете страницата и въведете паролата отново.');
+      } else {
+        showError('Грешка при стартиране на теста: ' + error.message);
+        elements.startBtn.disabled = false;
+      }
     }
   }
 
@@ -350,7 +328,7 @@
    */
   function handleTimerExpired() {
     alert('⏰ Времето изтече! Тестът ще бъде автоматично предаден.');
-    submitQuiz();
+    submitQuiz(true);
   }
 
   /**
@@ -399,7 +377,7 @@
 
     // Update question header
     elements.questionNumber.textContent = `Въпрос ${questionIndex + 1}`;
-    // Use innerHTML to preserve code formatting (pre tags)
+    // Use innerHTML to preserve code formatting (pre tags) - съдържанието идва от преподавателя
     elements.questionText.innerHTML = question.question;
 
     // Render answers
@@ -469,13 +447,15 @@
   }
 
   /**
-   * Submit quiz
+   * Submit quiz - оценяването става в worker-а
    */
-  async function submitQuiz() {
+  async function submitQuiz(force = false) {
+    if (isSubmitting) return;
+
     try {
       // Check if all questions are answered
       const unanswered = quizManager.getUnansweredQuestions();
-      if (unanswered.length > 0) {
+      if (unanswered.length > 0 && !force) {
         const confirm = window.confirm(
           `Имате ${unanswered.length} неотговорени въпроса!\n\n` +
           `Въпроси: ${unanswered.map(i => i + 1).join(', ')}\n\n` +
@@ -487,85 +467,45 @@
         }
       }
 
+      isSubmitting = true;
+      elements.submitBtn.disabled = true;
+
       // Stop timer
       quizManager.stopTimer();
 
-      // Get detailed score (includes answers breakdown)
-      const scoreDetails = quizManager.calculateScore();
+      const result = await quizApi.submit(
+        quizSession,
+        quizManager.getAnswersForSubmission(),
+        tabSwitchCount
+      );
 
-      // Get basic result for Gist submission (WITHOUT detailed answers)
-      const result = quizManager.getQuizResult(currentUser.login);
-
-      // Add faculty number and timestamps
-      result.facultyNumber = facultyNumber;
-      result.startedAt = quizStartTime;
-      result.completedAt = new Date().toISOString();
-
-      // Calculate time taken in seconds
-      const startTime = new Date(quizStartTime);
-      const endTime = new Date(result.completedAt);
-      result.timeTaken = Math.floor((endTime - startTime) / 1000);
-
-      // Store detailed answers in sessionStorage (temporary, for review page)
+      // Данни за review страницата (само верен/грешен, без верните отговори)
       const reviewData = {
-        score: scoreDetails.score,
-        total: scoreDetails.total,
-        percentage: scoreDetails.percentage,
+        score: result.score,
+        total: result.total,
+        percentage: result.percentage,
         timeTaken: result.timeTaken,
         completedAt: result.completedAt,
-        answers: scoreDetails.details.map(detail => ({
-          question: detail.questionText,
-          userAnswer: detail.userAnswer,
-          isCorrect: detail.isCorrect
-        }))
+        answers: result.review
       };
       sessionStorage.setItem('quiz_review_data', JSON.stringify(reviewData));
 
-      // Mark as attempted locally
-      LocalQuizAttempts.markAttempted(currentUser.login);
-
-      // Submit to GitHub Gist (WITHOUT detailed answers)
-      await quizStorage.submitResult(result);
-      console.log('✅ Резултатът е запазен в GitHub Gist');
+      console.log('✅ Резултатът е запазен');
 
       // Redirect to review page
       window.location.href = 'review.html';
 
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      alert('Грешка: ' + error.message);
+      isSubmitting = false;
+      elements.submitBtn.disabled = false;
+      if (error.status === 409 || error.status === 410) {
+        alert(error.message);
+        window.location.href = 'dashboard.html';
+      } else {
+        alert('Грешка при предаване: ' + error.message + '\nОпитайте отново.');
+      }
     }
-  }
-
-  /**
-   * Show results screen
-   */
-  function showResults(result) {
-    showScreen('results');
-
-    elements.finalScore.textContent = `${result.score}/${result.total}`;
-
-    const percentage = parseFloat(result.percentage);
-    let message = '';
-    if (percentage >= 90) {
-      message = '🌟 Отлично! Имате отлично разбиране на материала.';
-    } else if (percentage >= 75) {
-      message = '👍 Много добре! Продължавайте в същия дух.';
-    } else if (percentage >= 50) {
-      message = '✅ Добре! Има място за подобрение.';
-    } else {
-      message = '📚 Прегледайте материала отново.';
-    }
-
-    elements.resultMessage.innerHTML = `<p style="font-size: 18px; color: #4a5568;">${message}</p>`;
-
-    // Result details
-    elements.resultDetails.innerHTML = `
-      <li><strong>Верни отговори:</strong> ${result.score} от ${result.total}</li>
-      <li><strong>Процент:</strong> ${result.percentage}%</li>
-      <li><strong>Използвано време:</strong> ${QuizManager.formatTime(result.timeTaken)}</li>
-      <li><strong>Дата:</strong> ${new Date(result.timestamp).toLocaleString('bg-BG')}</li>
-    `;
   }
 
   /**
@@ -632,10 +572,10 @@
   elements.startBtn.addEventListener('click', startQuiz);
   elements.prevBtn.addEventListener('click', () => quizManager.previousQuestion());
   elements.nextBtn.addEventListener('click', () => quizManager.nextQuestion());
-  elements.submitBtn.addEventListener('click', submitQuiz);
+  elements.submitBtn.addEventListener('click', () => submitQuiz(false));
 
   // Keyboard shortcuts
   document.addEventListener('keydown', handleKeyboardShortcuts);
 
-  // Show access modal on load (init() is called after successful validation)
+  // Access modal is shown on load; the quiz starts after the worker validates the password
 })();

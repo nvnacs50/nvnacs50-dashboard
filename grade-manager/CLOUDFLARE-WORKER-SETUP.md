@@ -1,98 +1,90 @@
-# Cloudflare Worker Setup - Quiz Results
+# Cloudflare Worker Setup - CS50 Quiz
 
-## 📋 Стъпка 1: Създайте Worker
+Worker-ът в `cloudflare-worker-quiz/` е сървърната част на теста. Той държи всичко,
+което студентите не трябва да виждат:
 
-1. Отидете на: **https://dash.cloudflare.com/**
-2. Влезте с акаунт (или създайте безплатен)
-3. **Workers & Pages** → **Create Worker**
-4. Име: `quiz-results-saver` (или друго име)
-5. **Deploy** (за да се създаде)
+| Какво | Къде |
+|---|---|
+| Парола за достъп до теста | secret `QUIZ_ACCESS_PASSWORD` |
+| Парола за отключване след смяна на таб | secret `TEACHER_UNLOCK_PASSWORD` |
+| Въпроси с верни отговори (Moodle XML) | secret Gist, ID-то е secret `QUIZ_QUESTIONS_GIST_ID` |
+| Резултати (`quiz-results.json`) | secret Gist, ID-то е secret `QUIZ_RESULTS_GIST_ID` |
+| GitHub token за Gist-овете | secret `GITHUB_TOKEN` (PAT със scope `gist`) |
+| Ключ за подписване на сесии | secret `SESSION_SECRET` |
+| Кой е преподавател | var `TEACHER_LOGINS` в `wrangler.toml` |
+| Кои сайтове могат да викат worker-а | var `ALLOWED_ORIGINS` в `wrangler.toml` |
 
----
-
-## 📝 Стъпка 2: Deploy кода
-
-1. След deploy → **Edit Code**
-2. Изтрийте всичко в editor-а
-3. Copy/paste **ЦЯЛ КОД** от `cloudflare-worker-quiz-results.js`
-4. **Save and Deploy**
-
----
-
-## 🔐 Стъпка 3: Configure Secrets
-
-1. **Settings** tab на Worker-а
-2. **Variables and Secrets** → **Add**
-
-Добавете **2 environment variables**:
-
-### Variable 1:
-- **Name:** `QUIZ_RESULTS_GIST_ID`
-- **Value:** `***REMOVED***`
-- **Type:** Environment Variable
-
-### Variable 2:
-- **Name:** `GITHUB_TOKEN`
-- **Value:** `[вашия GitHub token с gist scope]`
-- **Type:** **Secret** ⚠️ (ВАЖНО!)
-
-3. **Save**
+Браузърът получава само 25 въпроса **без** верните отговори. Оценяването, лимитът от
+25 минути и правилото "един опит" се проверяват в worker-а.
 
 ---
 
-## 🌐 Стъпка 4: Копирайте Worker URL
-
-След deploy ще получите URL:
-```
-https://quiz-results-saver.your-subdomain.workers.dev
-```
-
-**Копирайте този URL** - ще го сложим в config.js
-
----
-
-## ✅ Test Worker-а
-
-Може да тествате с curl:
+## Стъпка 1: Инсталирайте Wrangler и влезте
 
 ```bash
-curl -X POST https://quiz-results-saver.your-subdomain.workers.dev \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "test-user",
-    "score": 20,
-    "total": 25,
-    "percentage": "80.00",
-    "timestamp": "2025-12-13T15:00:00.000Z",
-    "timeTaken": 1200,
-    "answers": []
-  }'
+npm install -g wrangler
+wrangler login
 ```
 
-Трябва да върне:
-```json
-{"success": true, "message": "Резултатът е запазен успешно!"}
+## Стъпка 2: Secret Gist-ове
+
+Създайте **нови** secret Gist-ове (старите ID-та са били в публичния код и са компрометирани):
+
+```bash
+# въпроси (локалният XML е gitignored)
+gh gist create --filename cs50-questions.xml public/student/data/cs50-questions.xml
+# резултати (празен масив)
+echo "[]" > quiz-results.json && gh gist create --filename quiz-results.json quiz-results.json
 ```
 
----
+Запишете двете ID-та от URL-ите. **Не ги слагайте в кода.**
 
-## 🔄 Следващи стъпки
+## Стъпка 3: Secrets
 
-След като deploy-нете Worker-а:
-1. **Копирайте Worker URL-а**
-2. Дайте ми го
-3. Ще обновя quiz-storage.js да го използва
+```bash
+cd cloudflare-worker-quiz
+wrangler secret put GITHUB_TOKEN             # PAT (classic) само със scope "gist"
+wrangler secret put QUIZ_QUESTIONS_GIST_ID
+wrangler secret put QUIZ_RESULTS_GIST_ID
+wrangler secret put QUIZ_ACCESS_PASSWORD     # нова парола за студентите
+wrangler secret put TEACHER_UNLOCK_PASSWORD  # нова парола за отключване
+wrangler secret put SESSION_SECRET           # напр. изхода на: openssl rand -base64 48
+```
 
----
+Проверете `wrangler.toml`: `TEACHER_LOGINS` трябва да съдържа вашето GitHub потребителско име,
+`ALLOWED_ORIGINS` - адресите на GitHub Pages сайтовете.
 
-## 💰 Цена
+## Стъпка 4: Deploy
 
-**Безплатно до 100,000 requests/ден** (повече от достатъчно за класна стая)
+```bash
+wrangler deploy
+```
 
----
+Името на worker-а е `quiz-results-saver`, така че URL-ът остава
+`https://quiz-results-saver.m-avramova.workers.dev` и `config.js` не се променя.
 
-## 🛟 Помощ
+## Проверка
 
-Ако имате проблеми:
-- Cloudflare Docs: https://developers.cloudflare.com/workers/
-- Или ми кажете къде сте се затруднили
+```bash
+# без token -> 401
+curl -s -X POST https://quiz-results-saver.m-avramova.workers.dev/results -d '{}'
+# с ваш token (gh auth token) -> списък с резултати
+curl -s -X POST https://quiz-results-saver.m-avramova.workers.dev/results \
+  -H "Authorization: Bearer $(gh auth token)" -d '{}'
+```
+
+## Смяна на паролата за теста
+
+```bash
+cd cloudflare-worker-quiz && wrangler secret put QUIZ_ACCESS_PASSWORD
+```
+
+Без нов deploy и без промяна в кода.
+
+## Обновяване на въпросите
+
+```bash
+gh gist edit <QUIZ_QUESTIONS_GIST_ID> -f cs50-questions.xml public/student/data/cs50-questions.xml
+```
+
+Worker-ът кешира въпросите до 10 минути.

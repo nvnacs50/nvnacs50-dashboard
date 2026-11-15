@@ -49,6 +49,10 @@ jobs:
           # Copy student dashboard to root
           cp -r grade-manager/public/student deploy-output/
 
+          # Never publish quiz question sources (they contain the answer key)
+          rm -rf deploy-output/student/data deploy-output/teacher/student/data
+          ! grep -rl 'fraction="100"' deploy-output || (echo "Answer key found in deploy output" && exit 1)
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

@@ -1,0 +1,21 @@
+# Cloudflare Worker: CS50 Quiz (сървърна част на теста)
+# Името е същото като стария worker, за да се запази URL-ът:
+# https://quiz-results-saver.m-avramova.workers.dev
+
+name = "quiz-results-saver"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# Origins, от които браузърът може да вика worker-а (GitHub Pages сайтовете)
+ALLOWED_ORIGINS = "https://mixaelaavramova.github.io,https://nvnacs50.github.io"
+# GitHub потребителски имена на преподавателите (четене/триене на резултати)
+TEACHER_LOGINS = "m-avramova"
+
+# Secrets - НИКОГА не се пишат тук. Задават се с:
+#   wrangler secret put GITHUB_TOKEN             (PAT със scope "gist")
+#   wrangler secret put QUIZ_RESULTS_GIST_ID     (secret Gist с quiz-results.json)
+#   wrangler secret put QUIZ_QUESTIONS_GIST_ID   (secret Gist с cs50-questions.xml)
+#   wrangler secret put QUIZ_ACCESS_PASSWORD     (парола за достъп до теста)
+#   wrangler secret put TEACHER_UNLOCK_PASSWORD  (парола за отключване след смяна на таб)
+#   wrangler secret put SESSION_SECRET           (дълъг случаен низ, напр. openssl rand -base64 48)
